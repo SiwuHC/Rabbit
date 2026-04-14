@@ -191,6 +191,42 @@ ComponentSettingsDialog::findHdlPortName(const QVector<ports::Port> &map,
       "ComponentSettingsDialog::findHdlPortName: pin name not found"));
 }
 
+void ComponentSettingsDialog::setHdlPortName(const QString &component_port_name,
+                                             const QString &hdl_port_name) {
+  // Find the row with the matching component port name
+  for (int i = 0; i < model_->rowCount(); i++) {
+    auto pname = model_->item(i, 0)->text();
+    if (pname == component_port_name) {
+      auto type = model_->item(i, 1)->text();
+      auto port_type = ports::stringToPortType(type);
+
+      // Get the combo box and set the value
+      auto combo = qobject_cast<QComboBox *>(table_view_->indexWidget(model_->index(i, 3)));
+      if (combo) {
+        combo->setCurrentText(hdl_port_name);
+      }
+
+      // Update the pin name label
+      auto &ports_vec = (port_type == ports::PortType::Input)
+                            ? ports_file_reader_->inputs()
+                            : ports_file_reader_->outputs();
+      QString pin_name;
+      for (auto &port : ports_vec) {
+        if (port.name == hdl_port_name) {
+          pin_name = port.pin_name;
+          break;
+        }
+      }
+      auto label = qobject_cast<QLabel *>(table_view_->indexWidget(model_->index(i, 2)));
+      if (label) {
+        label->setText(pin_name);
+      }
+
+      break;
+    }
+  }
+}
+
 void ComponentSettingsDialog::accept() {
   auto raw_component = component_->rawComponent();
   auto &inputs_vec = raw_component->inputPorts();

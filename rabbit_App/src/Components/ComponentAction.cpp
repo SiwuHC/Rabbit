@@ -44,6 +44,22 @@ ComponentAction *ComponentActionFactory::create(const QString &text,
     //   action->setIcon(NewComponentClass::componentIcon());
   } else if(text == "PS2Keyboard"){
     action->setIcon(PS2KeyboardComponent::componentIcon());
+  } else if(text == "DecimalInput8"){
+    action->setIcon(DecimalInput8Component::componentIcon());
+  } else if(text == "DataCapture8"){
+    action->setIcon(DataCapture8Component::componentIcon());
+  } else if(text == "DecimalInput16"){
+    action->setIcon(DecimalInput16Component::componentIcon());
+  } else if(text == "DataCapture16"){
+    action->setIcon(DataCapture16Component::componentIcon());
+  } else if(text == "DecimalInput32"){
+    action->setIcon(DecimalInput32Component::componentIcon());
+  } else if(text == "DataCapture32"){
+    action->setIcon(DataCapture32Component::componentIcon());
+  } else if(text == "DecimalInputFloat"){
+    action->setIcon(DecimalInputFloatComponent::componentIcon());
+  } else if(text == "DataCaptureFloat"){
+    action->setIcon(DataCaptureFloatComponent::componentIcon());
   } else {
     std::runtime_error("Unknown component type");
   }

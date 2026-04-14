@@ -12,6 +12,14 @@
  */
 
 #include "ButtonComponent.h"         // IWYU pragma: export
+#include "DataCapture8Component.h"   // IWYU pragma: export
+#include "DecimalInput8Component.h"   // IWYU pragma: export
+#include "DataCapture16Component.h"   // IWYU pragma: export
+#include "DecimalInput16Component.h"   // IWYU pragma: export
+#include "DataCapture32Component.h"   // IWYU pragma: export
+#include "DecimalInput32Component.h"   // IWYU pragma: export
+#include "DataCaptureFloatComponent.h"   // IWYU pragma: export
+#include "DecimalInputFloatComponent.h"   // IWYU pragma: export
 #include "GraphicLCDComponent.h"     // IWYU pragma: export
 #include "KeyPadComponent.h"         // IWYU pragma: export
 #include "LEDComponent.h"            // IWYU pragma: export
@@ -24,8 +32,9 @@
 
 // add new input component here
 inline QList<QString> inputComponents() {
-  return QList<QString>{"Switch", "Button", "KeyPad", "SmallKeyPad",
-                        "RotaryButton", "PS2Keyboard"};
+  return QList<QString>{"Switch",       "Button",      "KeyPad",       "SmallKeyPad",
+                        "RotaryButton", "PS2Keyboard", "DecimalInput8",
+                        "DecimalInput16", "DecimalInput32", "DecimalInputFloat"};
 }
 
 // add new output conponent here
@@ -37,7 +46,9 @@ inline QList<QString> outputComponents() {
                         "FourDigitSegmentDisplay",
                         "LED4x4Matrix",
                         "LED8x8Matrix",
-                        "LED16x16Matrix"};
+                        "LED16x16Matrix",
+                        "DataCapture8",
+                        "DataCapture16", "DataCapture32", "DataCaptureFloat"};
 }
 
 #endif // COMPONENTS_H

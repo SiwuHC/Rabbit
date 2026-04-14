@@ -21,7 +21,7 @@ end
 
 -- Main application target
 target("rabbit_App")
-    add_rules("qt.application")
+    add_rules("qt.application", {rccflags = {"--no-compress"}})
     set_kind("binary")
     set_default(true)
     

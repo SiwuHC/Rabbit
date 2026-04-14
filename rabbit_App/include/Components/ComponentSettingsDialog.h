@@ -1,5 +1,4 @@
 #pragma once
-#include "Components/ComponentSettingsDialog.h"
 #include "qlineedit.h"
 #include "qradiobutton.h"
 #include "qwidget.h"
@@ -65,6 +64,16 @@ protected:
   /// @brief Accept the dialog when the user clicks the OK button.
   void accept() override;
 
+public:
+  /// @brief Set HDL port name for a component port in the table.
+  /// @param component_port_name The name of the component port
+  /// @param hdl_port_name The HDL port name to set
+  void setHdlPortName(const QString &component_port_name, const QString &hdl_port_name);
+
+  /// @brief Get the ports file reader.
+  /// @return Pointer to the ports file reader
+  rabbit_App::ports::PortsFileReader *portsFileReader() { return ports_file_reader_; }
+
 private:
   /// @brief Get the names of the component ports.
   /// @return List of component port names
@@ -125,6 +134,7 @@ enum class SettingsFeature {
   ActiveMode,
   VisionPersistence,
   Color,
+  ArrayPortMapping,
 };
 
 /// @brief Template class for settings feature widget
@@ -213,6 +223,12 @@ private:
 };
 template <> struct WidgetOfFeatureHelper<SettingsFeature::Color> {
   using type = ColorSettingsFeatureWidget;
+};
+
+/// Forward declaration
+class ArrayPortMappingSettingsFeatureWidget;
+template <> struct WidgetOfFeatureHelper<SettingsFeature::ArrayPortMapping> {
+  using type = ArrayPortMappingSettingsFeatureWidget;
 };
 
 /// @brief Template class for component settings dialog with features

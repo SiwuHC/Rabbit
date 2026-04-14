@@ -37,6 +37,22 @@ AbstractComponent *ComponentsFactory::create(const QString &component_name,
     //   new_component = new NewComponentClass(parent);
   } else if (component_name == "PS2Keyboard") {
     new_component = new PS2KeyboardComponent(parent);
+  } else if (component_name == "DecimalInput8") {
+    new_component = new DecimalInput8Component(parent);
+  } else if (component_name == "DataCapture8") {
+    new_component = new DataCapture8Component(parent);
+  } else if (component_name == "DecimalInput16") {
+    new_component = new DecimalInput16Component(parent);
+  } else if (component_name == "DataCapture16") {
+    new_component = new DataCapture16Component(parent);
+  } else if (component_name == "DecimalInput32") {
+    new_component = new DecimalInput32Component(parent);
+  } else if (component_name == "DataCapture32") {
+    new_component = new DataCapture32Component(parent);
+  } else if (component_name == "DecimalInputFloat") {
+    new_component = new DecimalInputFloatComponent(parent);
+  } else if (component_name == "DataCaptureFloat") {
+    new_component = new DataCaptureFloatComponent(parent);
   } else {
     std::runtime_error("Unknown component type");
   }
