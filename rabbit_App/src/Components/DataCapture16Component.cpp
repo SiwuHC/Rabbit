@@ -1,7 +1,7 @@
 #include <QVBoxLayout>
 #include <QPainter>
 
-#include "Components/DataCaptureSettingsDialog.h"
+#include "Components/ComponentSettingsDialog.h"
 #include "Components/AbstractComponent.h"
 #include "Components/DataCapture16Component.h"
 
@@ -114,7 +114,9 @@ void DataCapture16RawComponent::updateDisplay() {
 COMPONENT_CLASS_DEFINITION(DataCapture16, 3, 3)
 
 void DataCapture16Component::onSettingsBtnClicked() {
-  DataCaptureSettingsDialog *dialog = new DataCaptureSettingsDialog(this, this);
+  auto dialog =
+      new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping>(
+          this, this);
   dialog->exec();
   delete dialog;
 }

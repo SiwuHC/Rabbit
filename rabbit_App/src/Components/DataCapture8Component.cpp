@@ -51,7 +51,7 @@ void DataCapture8RawComponent::processReadData(QQueue<uint64_t> &read_queue) {
 
   // First port (index 0) is CAPTURE signal
   // Next 8 ports (index 1-8) are DOUT0-DOUT7 data bits
-  auto capture_port_index = output_ports_[0].pin_index - 1; // -1 because index 0 is clock
+  auto capture_port_index = output_ports_[0].pin_index - 1;
 
   // Check the most recent sample for capture signal
   auto latest_value = read_queue.back();
@@ -112,7 +112,9 @@ void DataCapture8RawComponent::updateDisplay() {
 COMPONENT_CLASS_DEFINITION(DataCapture8, 3, 3)
 
 void DataCapture8Component::onSettingsBtnClicked() {
-  ComponentSettingsDialog *dialog = new ComponentSettingsDialog(this, this);
+  auto dialog =
+      new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping>(
+          this, this);
   dialog->exec();
   delete dialog;
 }

@@ -3,7 +3,7 @@
 #include <QPainter>
 #include <QIntValidator>
 
-#include "Components/DataCaptureSettingsDialog.h"
+#include "Components/ComponentSettingsDialog.h"
 #include "Components/AbstractComponent.h"
 #include "Components/DecimalInput32Component.h"
 
@@ -131,7 +131,9 @@ void DecimalInput32RawComponent::updateDisplay() {
 COMPONENT_CLASS_DEFINITION(DecimalInput32, 3, 3)
 
 void DecimalInput32Component::onSettingsBtnClicked() {
-  DataCaptureSettingsDialog *dialog = new DataCaptureSettingsDialog(this, this);
+  auto dialog =
+      new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping>(
+          this, this);
   dialog->exec();
   delete dialog;
 }

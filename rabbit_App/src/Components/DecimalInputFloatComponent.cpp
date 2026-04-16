@@ -2,7 +2,7 @@
 #include <QPainter>
 #include <QDoubleValidator>
 
-#include "Components/DataCaptureSettingsDialog.h"
+#include "Components/ComponentSettingsDialog.h"
 #include "Components/AbstractComponent.h"
 #include "Components/DecimalInputFloatComponent.h"
 
@@ -98,7 +98,9 @@ void DecimalInputFloatRawComponent::updateDisplay() {
 COMPONENT_CLASS_DEFINITION(DecimalInputFloat, 3, 3)
 
 void DecimalInputFloatComponent::onSettingsBtnClicked() {
-  DataCaptureSettingsDialog *dialog = new DataCaptureSettingsDialog(this, this);
+  auto dialog =
+      new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping>(
+          this, this);
   dialog->exec();
   delete dialog;
 }

@@ -225,8 +225,45 @@ template <> struct WidgetOfFeatureHelper<SettingsFeature::Color> {
   using type = ColorSettingsFeatureWidget;
 };
 
-/// Forward declaration
-class ArrayPortMappingSettingsFeatureWidget;
+/// @brief Class for array port mapping settings feature widget
+class ArrayPortMappingSettingsFeatureWidget
+    : public SettingsFeatureWidget<ArrayPortMappingSettingsFeatureWidget> {
+  Q_OBJECT
+
+public:
+  /// @brief Constructor for ArrayPortMappingSettingsFeatureWidget
+  /// @param component Pointer to the AbstractComponent
+  /// @param parent Pointer to the parent widget
+  ArrayPortMappingSettingsFeatureWidget(AbstractComponent *component,
+                                        QWidget *parent = nullptr);
+
+  /// @brief Accept the array port mapping settings
+  /// @param component Pointer to the AbstractComponent
+  void accept(AbstractComponent *component);
+
+  /// @brief Set the parent settings dialog for updating table combo boxes
+  void setParentDialog(ComponentSettingsDialog *dialog) { parent_dialog_ = dialog; }
+
+private slots:
+  void onAutoMapClicked();
+  void onArrayNameChanged(const QString &text);
+
+private:
+  void populatePortComboBoxes();
+  QString getArrayElementName(const QString &array_name, int index);
+
+private:
+  AbstractComponent *component_;
+  ComponentSettingsDialog *parent_dialog_ = nullptr;
+  QLineEdit *array_name_edit_;
+  QPushButton *auto_map_btn_;
+  QLabel *bit_width_label_;
+  QComboBox *input_array_combobox_;
+  QComboBox *output_array_combobox_;
+  QVector<QComboBox *> input_port_comboboxes_;
+  QVector<QComboBox *> output_port_comboboxes_;
+  int bit_width_;
+};
 template <> struct WidgetOfFeatureHelper<SettingsFeature::ArrayPortMapping> {
   using type = ArrayPortMappingSettingsFeatureWidget;
 };

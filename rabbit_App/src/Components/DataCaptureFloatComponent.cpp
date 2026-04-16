@@ -1,7 +1,7 @@
 #include <QVBoxLayout>
 #include <QPainter>
 
-#include "Components/DataCaptureSettingsDialog.h"
+#include "Components/ComponentSettingsDialog.h"
 #include "Components/AbstractComponent.h"
 #include "Components/DataCaptureFloatComponent.h"
 
@@ -95,7 +95,9 @@ void DataCaptureFloatRawComponent::updateDisplay() {
 COMPONENT_CLASS_DEFINITION(DataCaptureFloat, 3, 3)
 
 void DataCaptureFloatComponent::onSettingsBtnClicked() {
-  DataCaptureSettingsDialog *dialog = new DataCaptureSettingsDialog(this, this);
+  auto dialog =
+      new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping>(
+          this, this);
   dialog->exec();
   delete dialog;
 }
