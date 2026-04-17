@@ -246,22 +246,29 @@ public:
 
 private slots:
   void onAutoMapClicked();
-  void onArrayNameChanged(const QString &text);
+  void onTypeChanged(bool checked);
+  void onArrayPrefixChanged(const QString &text);
+  void onPinPrefixChanged(const QString &text);
 
 private:
-  void populatePortComboBoxes();
-  QString getArrayElementName(const QString &array_name, int index);
+  void populateArrayPrefixComboBox();
+  void updateBitWidth();
+  QString extractPrefix(const QString &pin_name);
+  /// @brief Parse range string like "0-31" or "31-0" and return {start, end, step}
+  QList<QPair<int, int>> parseRange(const QString &range_str);
 
 private:
   AbstractComponent *component_;
   ComponentSettingsDialog *parent_dialog_ = nullptr;
-  QLineEdit *array_name_edit_;
-  QPushButton *auto_map_btn_;
+
+  QRadioButton *input_radio_;
+  QRadioButton *output_radio_;
+  QComboBox *hdl_array_prefix_combobox_;
+  QLineEdit *pin_prefix_edit_;
+  QLineEdit *range_edit_;
   QLabel *bit_width_label_;
-  QComboBox *input_array_combobox_;
-  QComboBox *output_array_combobox_;
-  QVector<QComboBox *> input_port_comboboxes_;
-  QVector<QComboBox *> output_port_comboboxes_;
+  QPushButton *auto_map_btn_;
+
   int bit_width_;
 };
 template <> struct WidgetOfFeatureHelper<SettingsFeature::ArrayPortMapping> {
@@ -310,6 +317,18 @@ private:
          0)...};
     for (auto feature : features_) {
       appendSettingWidget(feature);
+    }
+    // Set parent dialog for ArrayPortMappingSettingsFeatureWidget
+    constexpr SettingsFeature features_arr[] = {Features...};
+    for (size_t i = 0; i < sizeof...(Features); ++i) {
+      if (features_arr[i] == SettingsFeature::ArrayPortMapping) {
+        auto *array_mapping_widget =
+            dynamic_cast<ArrayPortMappingSettingsFeatureWidget *>(features_[i]);
+        if (array_mapping_widget) {
+          array_mapping_widget->setParentDialog(this);
+        }
+        break;
+      }
     }
   }
 

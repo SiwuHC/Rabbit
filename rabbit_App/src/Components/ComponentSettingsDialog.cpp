@@ -376,132 +376,202 @@ ArrayPortMappingSettingsFeatureWidget::ArrayPortMappingSettingsFeatureWidget(
 
   auto main_layout = new QVBoxLayout(this);
 
-  // Array mapping group
-  auto array_group = new QGroupBox(tr("Array Port Mapping"), this);
-  auto array_layout = new QVBoxLayout(array_group);
+  // Type selection group (Input or Output)
+  auto type_group = new QGroupBox(tr("Port Type"), this);
+  auto type_layout = new QHBoxLayout(type_group);
+  input_radio_ = new QRadioButton(tr("Input"), this);
+  output_radio_ = new QRadioButton(tr("Output"), this);
+  input_radio_->setChecked(true);
+  type_layout->addWidget(input_radio_);
+  type_layout->addWidget(output_radio_);
+  type_layout->addStretch();
+  main_layout->addWidget(type_group);
 
-  // Input array selection
-  auto input_layout = new QHBoxLayout();
-  input_layout->addWidget(new QLabel(tr("Input Array Prefix:"), this));
-  input_array_combobox_ = new QComboBox(this);
-  input_array_combobox_->setEditable(true);
-  input_layout->addWidget(input_array_combobox_);
-  array_layout->addLayout(input_layout);
+  // HDL Array Prefix selection
+  auto hdl_layout = new QHBoxLayout();
+  hdl_layout->addWidget(new QLabel(tr("HDL Array Prefix:"), this));
+  hdl_array_prefix_combobox_ = new QComboBox(this);
+  hdl_array_prefix_combobox_->setEditable(true);
+  hdl_layout->addWidget(hdl_array_prefix_combobox_);
+  main_layout->addLayout(hdl_layout);
 
-  // Output array selection
-  auto output_layout = new QHBoxLayout();
-  output_layout->addWidget(new QLabel(tr("Output Array Prefix:"), this));
-  output_array_combobox_ = new QComboBox(this);
-  output_array_combobox_->setEditable(true);
-  output_layout->addWidget(output_array_combobox_);
-  array_layout->addLayout(output_layout);
+  // Pin Prefix selection
+  auto pin_layout = new QHBoxLayout();
+  pin_layout->addWidget(new QLabel(tr("Pin Prefix:"), this));
+  pin_prefix_edit_ = new QLineEdit(this);
+  pin_layout->addWidget(pin_prefix_edit_);
+  main_layout->addLayout(pin_layout);
+
+  // Range selection
+  auto range_layout = new QHBoxLayout();
+  range_layout->addWidget(new QLabel(tr("Range (e.g. 0-31):"), this));
+  range_edit_ = new QLineEdit(this);
+  range_edit_->setPlaceholderText("0-31");
+  range_layout->addWidget(range_edit_);
+  main_layout->addLayout(range_layout);
 
   // Bit width info
   bit_width_label_ = new QLabel(tr("Bit Width: --"), this);
-  array_layout->addWidget(bit_width_label_);
+  main_layout->addWidget(bit_width_label_);
 
   // Auto map button
   auto_map_btn_ = new QPushButton(tr("Auto Map Ports"), this);
-  array_layout->addWidget(auto_map_btn_);
+  main_layout->addWidget(auto_map_btn_);
 
-  main_layout->addWidget(array_group);
+  main_layout->addStretch();
   setLayout(main_layout);
 
   // Connect signals
   connect(auto_map_btn_, &QPushButton::clicked, this,
           &ArrayPortMappingSettingsFeatureWidget::onAutoMapClicked);
-  connect(input_array_combobox_, &QComboBox::currentTextChanged, this,
-          &ArrayPortMappingSettingsFeatureWidget::onArrayNameChanged);
-  connect(output_array_combobox_, &QComboBox::currentTextChanged, this,
-          &ArrayPortMappingSettingsFeatureWidget::onArrayNameChanged);
+  connect(input_radio_, &QRadioButton::toggled, this,
+          &ArrayPortMappingSettingsFeatureWidget::onTypeChanged);
+  connect(hdl_array_prefix_combobox_, &QComboBox::currentTextChanged, this,
+          &ArrayPortMappingSettingsFeatureWidget::onArrayPrefixChanged);
+  connect(pin_prefix_edit_, &QLineEdit::textChanged, this,
+          &ArrayPortMappingSettingsFeatureWidget::onPinPrefixChanged);
+  connect(range_edit_, &QLineEdit::textChanged, this,
+          &ArrayPortMappingSettingsFeatureWidget::onPinPrefixChanged);
 
-  // Initialize combo boxes with available ports from constraint file
-  populatePortComboBoxes();
+  // Initialize combo box with available ports from constraint file
+  populateArrayPrefixComboBox();
 }
 
-void ArrayPortMappingSettingsFeatureWidget::populatePortComboBoxes() {
-  // Get constraint file path
+void ArrayPortMappingSettingsFeatureWidget::populateArrayPrefixComboBox() {
   QString constraint_path = component_->constraintFilePath();
   if (constraint_path.isEmpty()) {
     return;
   }
 
-  // Create ports reader to get available ports
   rabbit_App::ports::PortsFileReader reader;
   reader.readFromFile(constraint_path);
 
-  auto &inputs = reader.inputs();
-  auto &outputs = reader.outputs();
+  auto &ports = input_radio_->isChecked() ? reader.inputs() : reader.outputs();
 
-  // Extract unique array prefixes from input ports
-  QSet<QString> input_prefixes;
-  for (auto &port : inputs) {
+  // Extract unique array prefixes from ports
+  QSet<QString> prefixes;
+  for (auto &port : ports) {
     // Check if port name matches pattern like "data[0]", "data[1]", etc.
     QRegularExpression regex(R"(^(\w+)\[)");
     QRegularExpressionMatch match = regex.match(port.name);
     if (match.hasMatch()) {
-      input_prefixes.insert(match.captured(1));
+      prefixes.insert(match.captured(1));
     }
   }
 
-  // Extract unique array prefixes from output ports
-  QSet<QString> output_prefixes;
-  for (auto &port : outputs) {
-    QRegularExpression regex(R"(^(\w+)\[)");
-    QRegularExpressionMatch match = regex.match(port.name);
-    if (match.hasMatch()) {
-      output_prefixes.insert(match.captured(1));
-    }
-  }
-
-  // Populate combo boxes
-  for (auto &prefix : input_prefixes) {
-    input_array_combobox_->addItem(prefix);
-  }
-  for (auto &prefix : output_prefixes) {
-    output_array_combobox_->addItem(prefix);
+  // Populate combo box
+  hdl_array_prefix_combobox_->clear();
+  for (auto &prefix : prefixes) {
+    hdl_array_prefix_combobox_->addItem(prefix);
   }
 }
 
-void ArrayPortMappingSettingsFeatureWidget::onArrayNameChanged(const QString &text) {
+void ArrayPortMappingSettingsFeatureWidget::onTypeChanged(bool checked) {
+  Q_UNUSED(checked);
+  populateArrayPrefixComboBox();
+  updateBitWidth();
+}
+
+void ArrayPortMappingSettingsFeatureWidget::onArrayPrefixChanged(const QString &text) {
   Q_UNUSED(text);
-  // Update bit width based on available ports
+  updateBitWidth();
+}
+
+void ArrayPortMappingSettingsFeatureWidget::onPinPrefixChanged(const QString &text) {
+  Q_UNUSED(text);
+  updateBitWidth();
+}
+
+void ArrayPortMappingSettingsFeatureWidget::updateBitWidth() {
   QString constraint_path = component_->constraintFilePath();
   if (constraint_path.isEmpty()) {
+    bit_width_ = 0;
+    bit_width_label_->setText("Bit Width: --");
     return;
   }
 
   rabbit_App::ports::PortsFileReader reader;
   reader.readFromFile(constraint_path);
 
-  QString input_prefix = input_array_combobox_->currentText();
-  QString output_prefix = output_array_combobox_->currentText();
+  QString hdl_prefix = hdl_array_prefix_combobox_->currentText();
+  QString pin_prefix = pin_prefix_edit_->text();
 
-  int input_count = 0;
-  int output_count = 0;
+  auto &hdl_ports = input_radio_->isChecked() ? reader.inputs() : reader.outputs();
+  auto &pin_ports = input_radio_->isChecked()
+                        ? component_->rawComponent()->inputPorts()
+                        : component_->rawComponent()->outputPorts();
 
-  // Count matching input ports
-  for (auto &port : reader.inputs()) {
-    if (port.name.startsWith(input_prefix + "[") || port.name == input_prefix) {
-      input_count++;
+  int hdl_count = 0;
+  int pin_count = 0;
+
+  // Count HDL ports matching the prefix
+  for (auto &port : hdl_ports) {
+    if (port.name.startsWith(hdl_prefix + "[") || port.name == hdl_prefix) {
+      hdl_count++;
     }
   }
 
-  // Count matching output ports
-  for (auto &port : reader.outputs()) {
-    if (port.name.startsWith(output_prefix + "[") || port.name == output_prefix) {
-      output_count++;
+  // Count pin ports matching the prefix (extract prefix from pin name)
+  for (auto &port : pin_ports) {
+    if (extractPrefix(port.name) == pin_prefix) {
+      pin_count++;
     }
   }
 
-  int max_count = qMax(input_count, output_count);
-  if (max_count > 0) {
-    bit_width_ = max_count;
+  int count = qMin(hdl_count, pin_count);
+  if (count > 0) {
+    bit_width_ = count;
     bit_width_label_->setText(QString("Bit Width: %1").arg(bit_width_));
   } else {
     bit_width_ = 0;
     bit_width_label_->setText("Bit Width: --");
   }
+}
+
+QList<QPair<int, int>> ArrayPortMappingSettingsFeatureWidget::parseRange(const QString &range_str) {
+  QList<QPair<int, int>> result;
+  if (range_str.isEmpty()) {
+    return result;
+  }
+
+  QStringList parts = range_str.split(",", Qt::SkipEmptyParts);
+  for (const QString &part : parts) {
+    QString trimmed = part.trimmed();
+    if (trimmed.isEmpty()) {
+      continue;
+    }
+
+    // Check for range like "0-31" or "31-0"
+    if (trimmed.contains("-")) {
+      QStringList range_parts = trimmed.split("-", Qt::SkipEmptyParts);
+      if (range_parts.size() == 2) {
+        bool ok1, ok2;
+        int start = range_parts[0].trimmed().toInt(&ok1);
+        int end = range_parts[1].trimmed().toInt(&ok2);
+        if (ok1 && ok2) {
+          result.append({start, end});
+        }
+      }
+    } else {
+      // Single number like "5"
+      bool ok;
+      int val = trimmed.toInt(&ok);
+      if (ok) {
+        result.append({val, val});
+      }
+    }
+  }
+  return result;
+}
+
+QString ArrayPortMappingSettingsFeatureWidget::extractPrefix(const QString &pin_name) {
+  // Extract prefix: "DIN5" -> "DIN", "RW" -> "RW"
+  QRegularExpression regex(R"(^([A-Za-z_]+))");
+  QRegularExpressionMatch match = regex.match(pin_name);
+  if (match.hasMatch()) {
+    return match.captured(1);
+  }
+  return pin_name;
 }
 
 void ArrayPortMappingSettingsFeatureWidget::onAutoMapClicked() {
@@ -519,66 +589,91 @@ void ArrayPortMappingSettingsFeatureWidget::onAutoMapClicked() {
   rabbit_App::ports::PortsFileReader reader;
   reader.readFromFile(constraint_path);
 
-  QString input_prefix = input_array_combobox_->currentText();
-  QString output_prefix = output_array_combobox_->currentText();
+  QString hdl_prefix = hdl_array_prefix_combobox_->currentText();
+  QString pin_prefix = pin_prefix_edit_->text();
+  QString range_str = range_edit_->text();
 
-  auto raw_component = component_->rawComponent();
-  auto &inputs_vec = raw_component->inputPorts();
-  auto &outputs_vec = raw_component->outputPorts();
+  if (hdl_prefix.isEmpty()) {
+    QMessageBox::warning(this, tr("Warning"), tr("Please specify HDL Array Prefix."));
+    return;
+  }
+  if (pin_prefix.isEmpty()) {
+    QMessageBox::warning(this, tr("Warning"), tr("Please specify Pin Prefix."));
+    return;
+  }
+
+  auto &hdl_ports = input_radio_->isChecked() ? reader.inputs() : reader.outputs();
+  auto &pin_ports = input_radio_->isChecked()
+                        ? component_->rawComponent()->inputPorts()
+                        : component_->rawComponent()->outputPorts();
+
+  // Build a map of pin port name -> pin port for quick lookup
+  QMap<QString, ports::Port> pin_port_map;
+  for (auto &port : pin_ports) {
+    pin_port_map[port.name] = port;
+  }
 
   int mapped_count = 0;
 
-  // Map input ports
-  for (auto &port : inputs_vec) {
-    // Extract index from port name (e.g., "DIN5" -> 5)
-    QRegularExpression regex(R"(DIN(\d+))");
-    QRegularExpressionMatch match = regex.match(port.name);
-    if (match.hasMatch()) {
-      int index = match.captured(1).toInt();
-      QString array_port_name = input_prefix.isEmpty()
-                                    ? QString()
-                                    : QString("%1[%2]").arg(input_prefix).arg(index);
-
-      if (!array_port_name.isEmpty()) {
-        // Find matching port in constraint file
-        for (auto &hdl_port : reader.inputs()) {
-          if (hdl_port.name == array_port_name) {
-            // Update the table's combo box
-            parent_dialog_->setHdlPortName(port.name, hdl_port.name);
-            mapped_count++;
-            break;
-          }
+  // Parse range or use default
+  QList<QPair<int, int>> ranges = parseRange(range_str);
+  if (ranges.isEmpty()) {
+    // Default: find all indices from both HDL and pin ports
+    QList<int> indices;
+    for (auto &port : hdl_ports) {
+      if (port.name.startsWith(hdl_prefix + "[")) {
+        QRegularExpression regex(R"(\d+)");
+        QRegularExpressionMatch match = regex.match(port.name);
+        if (match.hasMatch()) {
+          indices.append(match.captured(0).toInt());
         }
       }
     }
+    if (!indices.isEmpty()) {
+      ranges.append({indices.front(), indices.back()});
+    }
   }
 
-  // Map output ports
-  for (auto &port : outputs_vec) {
-    // Skip the first port (CAPTURE signal)
-    if (port.name == "CAPTURE") {
-      continue;
-    }
+  // For each range, map the ports
+  for (auto &range : ranges) {
+    int start = range.first;
+    int end = range.second;
+    int step = (start <= end) ? 1 : -1;
+    int range_size = qAbs(end - start) + 1;
 
-    // Extract index from port name (e.g., "DOUT5" -> 5)
-    QRegularExpression regex(R"(DOUT(\d+))");
-    QRegularExpressionMatch match = regex.match(port.name);
-    if (match.hasMatch()) {
-      int index = match.captured(1).toInt();
-      QString array_port_name = output_prefix.isEmpty()
-                                    ? QString()
-                                    : QString("%1[%2]").arg(output_prefix).arg(index);
+    // Pin index goes from 0 to range_size-1
+    for (int pin_idx = 0; pin_idx < range_size; pin_idx++) {
+      // HDL index follows the range direction
+      int hdl_idx = start + pin_idx * step;
 
-      if (!array_port_name.isEmpty()) {
-        // Find matching port in constraint file
-        for (auto &hdl_port : reader.outputs()) {
-          if (hdl_port.name == array_port_name) {
-            // Update the table's combo box
-            parent_dialog_->setHdlPortName(port.name, hdl_port.name);
-            mapped_count++;
-            break;
-          }
+      // Find the HDL port
+      QString hdl_port_name = QString("%1[%2]").arg(hdl_prefix).arg(hdl_idx);
+      bool hdl_port_exists = false;
+      for (auto &port : hdl_ports) {
+        if (port.name == hdl_port_name) {
+          hdl_port_exists = true;
+          break;
         }
+      }
+      if (!hdl_port_exists) {
+        continue;
+      }
+
+      // Find the pin port with matching prefix and index
+      QString pin_port_name_exact = QString("%1%2").arg(pin_prefix).arg(pin_idx);
+      // Also check for ports without number suffix (like "CAPTURE" mapping to index 0)
+      QString pin_port_name_no_suffix = pin_prefix;
+
+      QString matched_pin_name;
+      if (pin_port_map.contains(pin_port_name_exact)) {
+        matched_pin_name = pin_port_name_exact;
+      } else if (pin_idx == 0 && pin_port_map.contains(pin_port_name_no_suffix)) {
+        matched_pin_name = pin_port_name_no_suffix;
+      }
+
+      if (!matched_pin_name.isEmpty()) {
+        parent_dialog_->setHdlPortName(matched_pin_name, hdl_port_name);
+        mapped_count++;
       }
     }
   }
@@ -588,17 +683,10 @@ void ArrayPortMappingSettingsFeatureWidget::onAutoMapClicked() {
                              QString("Mapped %1 ports successfully!").arg(mapped_count));
   } else {
     QMessageBox::warning(this, tr("Warning"),
-                        tr("No ports were mapped. Check the array prefix names."));
+                        tr("No ports were mapped. Check the prefix names."));
   }
 }
 
 void ArrayPortMappingSettingsFeatureWidget::accept(AbstractComponent *component) {
-  // Mapping is already done in onAutoMapClicked
-  // This function is called when the dialog is accepted
   Q_UNUSED(component);
-}
-
-QString ArrayPortMappingSettingsFeatureWidget::getArrayElementName(
-    const QString &array_name, int index) {
-  return QString("%1[%2]").arg(array_name).arg(index);
 }
