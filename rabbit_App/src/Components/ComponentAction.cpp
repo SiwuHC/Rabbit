@@ -60,6 +60,22 @@ ComponentAction *ComponentActionFactory::create(const QString &text,
     action->setIcon(DecimalInputFloatComponent::componentIcon());
   } else if(text == "DataCaptureFloat"){
     action->setIcon(DataCaptureFloatComponent::componentIcon());
+  } else if(text == "StreamInput8"){
+    action->setIcon(StreamInput8Component::componentIcon());
+  } else if(text == "StreamInput16"){
+    action->setIcon(StreamInput16Component::componentIcon());
+  } else if(text == "StreamInput32"){
+    action->setIcon(StreamInput32Component::componentIcon());
+  } else if(text == "StreamInputFloat"){
+    action->setIcon(StreamInputFloatComponent::componentIcon());
+  } else if(text == "StreamOutput8"){
+    action->setIcon(StreamOutput8Component::componentIcon());
+  } else if(text == "StreamOutput16"){
+    action->setIcon(StreamOutput16Component::componentIcon());
+  } else if(text == "StreamOutput32"){
+    action->setIcon(StreamOutput32Component::componentIcon());
+  } else if(text == "StreamOutputFloat"){
+    action->setIcon(StreamOutputFloatComponent::componentIcon());
   } else {
     std::runtime_error("Unknown component type");
   }

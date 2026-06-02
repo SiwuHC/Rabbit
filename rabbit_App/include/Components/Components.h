@@ -29,12 +29,22 @@
 #include "SwitchComponent.h"         // IWYU pragma: export
 #include "TextLCDComponent.h"        // IWYU pragma: export
 #include "PS2KeyboardComponent.h"
+#include "StreamInput8Component.h"     // IWYU pragma: export
+#include "StreamInput16Component.h"    // IWYU pragma: export
+#include "StreamInput32Component.h"    // IWYU pragma: export
+#include "StreamInputFloatComponent.h" // IWYU pragma: export
+#include "StreamOutput8Component.h"    // IWYU pragma: export
+#include "StreamOutput16Component.h"   // IWYU pragma: export
+#include "StreamOutput32Component.h"   // IWYU pragma: export
+#include "StreamOutputFloatComponent.h" // IWYU pragma: export
 
 // add new input component here
 inline QList<QString> inputComponents() {
   return QList<QString>{"Switch",       "Button",      "KeyPad",       "SmallKeyPad",
                         "RotaryButton", "PS2Keyboard", "DecimalInput8",
-                        "DecimalInput16", "DecimalInput32", "DecimalInputFloat"};
+                        "DecimalInput16", "DecimalInput32", "DecimalInputFloat",
+                        "StreamInput8", "StreamInput16", "StreamInput32",
+                        "StreamInputFloat"};
 }
 
 // add new output conponent here
@@ -48,7 +58,9 @@ inline QList<QString> outputComponents() {
                         "LED8x8Matrix",
                         "LED16x16Matrix",
                         "DataCapture8",
-                        "DataCapture16", "DataCapture32", "DataCaptureFloat"};
+                        "DataCapture16", "DataCapture32", "DataCaptureFloat",
+                        "StreamOutput8", "StreamOutput16", "StreamOutput32",
+                        "StreamOutputFloat"};
 }
 
 #endif // COMPONENTS_H

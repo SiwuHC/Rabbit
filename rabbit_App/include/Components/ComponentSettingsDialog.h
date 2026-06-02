@@ -16,6 +16,7 @@
 #include <QMap>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QSpinBox>
 #include <QStandardItemModel>
 #include <QTableView>
 
@@ -130,11 +131,14 @@ private:
 }; // class ComponentSettingsDialog
 
 /// @brief Enum class for settings features
+/// @brief Enum class for settings features
 enum class SettingsFeature {
   ActiveMode,
   VisionPersistence,
   Color,
   ArrayPortMapping,
+  FlagSetting,    // generic checkbox(es) via flagSettings()
+  NumberSetting,  // generic spinbox(es)  via numberSettings()
 };
 
 /// @brief Template class for settings feature widget
@@ -223,6 +227,39 @@ private:
 };
 template <> struct WidgetOfFeatureHelper<SettingsFeature::Color> {
   using type = ColorSettingsFeatureWidget;
+};
+
+/// @brief Generic flag (checkbox) settings feature widget.
+/// Reads flagSettings() from the raw component and creates one QCheckBox per entry.
+class FlagSettingsFeatureWidget
+    : public SettingsFeatureWidget<FlagSettingsFeatureWidget> {
+public:
+  FlagSettingsFeatureWidget(AbstractComponent *component,
+                            QWidget *parent = nullptr);
+  void accept(AbstractComponent *component);
+
+private:
+  QMap<QString, QCheckBox *> checkboxes_;
+};
+template <> struct WidgetOfFeatureHelper<SettingsFeature::FlagSetting> {
+  using type = FlagSettingsFeatureWidget;
+};
+
+/// @brief Generic number (spinbox) settings feature widget.
+/// Reads numberSettings() from the raw component and creates one row
+/// (QLabel + QSpinBox) per entry.
+class NumberSettingsFeatureWidget
+    : public SettingsFeatureWidget<NumberSettingsFeatureWidget> {
+public:
+  NumberSettingsFeatureWidget(AbstractComponent *component,
+                              QWidget *parent = nullptr);
+  void accept(AbstractComponent *component);
+
+private:
+  QMap<QString, QSpinBox *> spinboxes_;
+};
+template <> struct WidgetOfFeatureHelper<SettingsFeature::NumberSetting> {
+  using type = NumberSettingsFeatureWidget;
 };
 
 /// @brief Class for array port mapping settings feature widget

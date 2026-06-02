@@ -3,6 +3,7 @@
 #define ABSTRACT_COMPONENT_H
 
 #include <QBitArray>
+#include <QList>
 #include <QPoint>
 #include <QQueue>
 #include <QSize>
@@ -15,6 +16,22 @@
 namespace rabbit_App::component {
 
 class ComponentSettingsDialog;
+
+/// @brief Data for a single flag (checkbox) setting.
+struct FlagSettingInfo {
+  QString key;    ///< internal identifier
+  QString label;  ///< UI label
+  bool value;     ///< current value
+};
+
+/// @brief Data for a single number (spinbox) setting.
+struct NumberSettingInfo {
+  QString key;    ///< internal identifier
+  QString label;  ///< UI label
+  int min_val;    ///< minimum value
+  int max_val;    ///< maximum value
+  int value;      ///< current value
+};
 
 /// @brief Abstract class for all raw components.
 /// The raw component is the true component that accepts inputs and displays
@@ -83,6 +100,23 @@ public:
   /// @param vision_persistence The vision persistence of the component.
   virtual void setVisionPersistence(int vision_persistence) {
     vision_persistence_ = vision_persistence;
+  }
+
+  /// @brief Return the list of flag (checkbox) settings for this component.
+  /// Override to expose custom toggle settings in the settings dialog.
+  virtual QList<FlagSettingInfo> flagSettings() const { return {}; }
+  /// @brief Set a flag setting value.
+  virtual void setFlagSetting(const QString &key, bool value) {
+    Q_UNUSED(key);
+    Q_UNUSED(value);
+  }
+  /// @brief Return the list of number (spinbox) settings for this component.
+  /// Override to expose custom numeric settings in the settings dialog.
+  virtual QList<NumberSettingInfo> numberSettings() const { return {}; }
+  /// @brief Set a number setting value.
+  virtual void setNumberSetting(const QString &key, int value) {
+    Q_UNUSED(key);
+    Q_UNUSED(value);
   }
 
   /// @brief Get the component colors.

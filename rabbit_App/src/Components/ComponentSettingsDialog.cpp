@@ -1,4 +1,5 @@
 #include <QFile>
+#include <QFormLayout>
 #include <QHeaderView>
 #include <QPushButton>
 
@@ -323,6 +324,63 @@ void VisionPersistenceSettingsFeatureWidget::accept(
   if (static_cast<int>(vision_persistence) !=
       component->rawComponent()->visionPersistence()) {
     component->rawComponent()->setVisionPersistence(vision_persistence);
+  }
+}
+
+// ============================================================
+// FlagSettingsFeatureWidget — generic checkbox(es) from flagSettings()
+// ============================================================
+FlagSettingsFeatureWidget::FlagSettingsFeatureWidget(
+    AbstractComponent *component, QWidget *parent)
+    : SettingsFeatureWidget<FlagSettingsFeatureWidget>(parent) {
+  auto layout = new QVBoxLayout(this);
+  auto flags = component->rawComponent()->flagSettings();
+  if (flags.isEmpty()) {
+    layout->addWidget(new QLabel(tr("(no settings)"), this));
+  } else {
+    for (const auto &f : flags) {
+      auto *cb = new QCheckBox(f.label, this);
+      cb->setChecked(f.value);
+      checkboxes_[f.key] = cb;
+      layout->addWidget(cb);
+    }
+  }
+  setLayout(layout);
+}
+
+void FlagSettingsFeatureWidget::accept(AbstractComponent *component) {
+  auto *raw = component->rawComponent();
+  for (auto it = checkboxes_.begin(); it != checkboxes_.end(); ++it) {
+    raw->setFlagSetting(it.key(), it.value()->isChecked());
+  }
+}
+
+// ============================================================
+// NumberSettingsFeatureWidget — generic spinbox(es) from numberSettings()
+// ============================================================
+NumberSettingsFeatureWidget::NumberSettingsFeatureWidget(
+    AbstractComponent *component, QWidget *parent)
+    : SettingsFeatureWidget<NumberSettingsFeatureWidget>(parent) {
+  auto layout = new QFormLayout(this);
+  auto numbers = component->rawComponent()->numberSettings();
+  if (numbers.isEmpty()) {
+    layout->addRow(new QLabel(tr("(no settings)"), this));
+  } else {
+    for (const auto &n : numbers) {
+      auto *sb = new QSpinBox(this);
+      sb->setRange(n.min_val, n.max_val);
+      sb->setValue(n.value);
+      spinboxes_[n.key] = sb;
+      layout->addRow(n.label + ":", sb);
+    }
+  }
+  setLayout(layout);
+}
+
+void NumberSettingsFeatureWidget::accept(AbstractComponent *component) {
+  auto *raw = component->rawComponent();
+  for (auto it = spinboxes_.begin(); it != spinboxes_.end(); ++it) {
+    raw->setNumberSetting(it.key(), it.value()->value());
   }
 }
 

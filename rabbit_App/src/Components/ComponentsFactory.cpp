@@ -53,6 +53,22 @@ AbstractComponent *ComponentsFactory::create(const QString &component_name,
     new_component = new DecimalInputFloatComponent(parent);
   } else if (component_name == "DataCaptureFloat") {
     new_component = new DataCaptureFloatComponent(parent);
+  } else if (component_name == "StreamInput8") {
+    new_component = new StreamInput8Component(parent);
+  } else if (component_name == "StreamInput16") {
+    new_component = new StreamInput16Component(parent);
+  } else if (component_name == "StreamInput32") {
+    new_component = new StreamInput32Component(parent);
+  } else if (component_name == "StreamInputFloat") {
+    new_component = new StreamInputFloatComponent(parent);
+  } else if (component_name == "StreamOutput8") {
+    new_component = new StreamOutput8Component(parent);
+  } else if (component_name == "StreamOutput16") {
+    new_component = new StreamOutput16Component(parent);
+  } else if (component_name == "StreamOutput32") {
+    new_component = new StreamOutput32Component(parent);
+  } else if (component_name == "StreamOutputFloat") {
+    new_component = new StreamOutputFloatComponent(parent);
   } else {
     std::runtime_error("Unknown component type");
   }

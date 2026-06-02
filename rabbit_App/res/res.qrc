@@ -53,6 +53,14 @@
         <file>icons/components/DataCapture32-icon.png</file>
         <file>icons/components/DecimalInputFloat-icon.png</file>
         <file>icons/components/DataCaptureFloat-icon.png</file>
+        <file>icons/components/StreamInput8-icon.png</file>
+        <file>icons/components/StreamInput16-icon.png</file>
+        <file>icons/components/StreamInput32-icon.png</file>
+        <file>icons/components/StreamInputFloat-icon.png</file>
+        <file>icons/components/StreamOutput8-icon.png</file>
+        <file>icons/components/StreamOutput16-icon.png</file>
+        <file>icons/components/StreamOutput32-icon.png</file>
+        <file>icons/components/StreamOutputFloat-icon.png</file>
         <file>icons/icons8-keyboard-94.png</file>
         <file>icons/icons8-keyboard-onfocus-94.png</file>
         <file>icons/icons8-keyboard-inuse-94.png</file>
