@@ -84,6 +84,6 @@ void StreamInput8RawComponent::setNumberSetting(const QString &key, int value) {
   if (key=="target_count") { target_count_=value; updateCounter(); }
 }
 void StreamInput8Component::onSettingsBtnClicked() {
-  auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::NumberSetting>(this,this);
+  auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping,SettingsFeature::NumberSetting>(this,this);
   dlg->exec(); delete dlg;
 }

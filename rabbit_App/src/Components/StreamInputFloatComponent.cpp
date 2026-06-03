@@ -87,6 +87,6 @@ void StreamInputFloatRawComponent::setNumberSetting(const QString &key, int valu
   if (key=="target_count") { target_count_=value; updateCounter(); }
 }
 void StreamInputFloatComponent::onSettingsBtnClicked() {
-  auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::NumberSetting>(this,this);
+  auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping,SettingsFeature::NumberSetting>(this,this);
   dlg->exec(); delete dlg;
 }

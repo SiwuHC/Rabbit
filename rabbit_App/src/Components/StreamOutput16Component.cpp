@@ -187,8 +187,8 @@ void StreamOutput16RawComponent::setNumberSetting(const QString &key, int value)
 }
 
 void StreamOutput16Component::onSettingsBtnClicked() {
-  auto dlg = new ComponentSettingsDialogWithFeatures<
-      SettingsFeature::NumberSetting>(this, this);
+    auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping,SettingsFeature::NumberSetting>(this,this);
+
   dlg->exec();
   delete dlg;
 }

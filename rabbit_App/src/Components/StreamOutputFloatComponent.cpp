@@ -87,6 +87,6 @@ void StreamOutputFloatRawComponent::setNumberSetting(const QString &key, int val
   if (grid_mode_) rebuildGridDisplay();
 }
 void StreamOutputFloatComponent::onSettingsBtnClicked() {
-  auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::NumberSetting>(this,this);
+  auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping,SettingsFeature::NumberSetting>(this,this);
   dlg->exec(); delete dlg;
 }

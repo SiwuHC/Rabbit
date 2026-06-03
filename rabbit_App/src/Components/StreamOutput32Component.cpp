@@ -85,6 +85,6 @@ void StreamOutput32RawComponent::setNumberSetting(const QString &key, int value)
   if (grid_mode_) rebuildGridDisplay();
 }
 void StreamOutput32Component::onSettingsBtnClicked() {
-  auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::NumberSetting>(this,this);
+  auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping,SettingsFeature::NumberSetting>(this,this);
   dlg->exec(); delete dlg;
 }
