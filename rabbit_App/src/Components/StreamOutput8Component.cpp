@@ -27,7 +27,7 @@ StreamOutput8RawComponent::StreamOutput8RawComponent(QWidget *parent)
   connect(clear_btn_,&QPushButton::clicked,this,&StreamOutput8RawComponent::onClear);
 }
 StreamOutput8RawComponent::~StreamOutput8RawComponent() {}
-void StreamOutput8RawComponent::reset() { output_list_->clear(); received_count_=0; prev_clk_=0; updateDisplay(); }
+void StreamOutput8RawComponent::reset() { output_list_->clear(); stored_vals_.clear(); received_count_=0; prev_clk_=0; updateDisplay(); }
 void StreamOutput8RawComponent::processReadData(QQueue<uint64_t> &rq) {
   const auto &p = output_ports_;
   for (const auto &s : rq) {
@@ -50,25 +50,30 @@ void StreamOutput8RawComponent::initPorts() {
 }
 void StreamOutput8RawComponent::toggleGridMode() {
   grid_mode_=!grid_mode_; grid_btn_->setText(grid_mode_?"List":"Grid");
-  if (grid_mode_) rebuildGridDisplay();
+  output_list_->clear();
+  if (grid_mode_) {
+    for (int r=0;r<grid_rows_;r++) {
+      QString row;
+      for (int c=0;c<grid_cols_;c++) { int idx=r*grid_cols_+c; row+=(idx<stored_vals_.size())?stored_vals_[idx]:"----"; if(c<grid_cols_-1) row+="  "; }
+      output_list_->addItem(row);
+    }
+  } else {
+    for (int i=0;i<stored_vals_.size();i++) output_list_->addItem(QString("#%1: %2").arg(i).arg(stored_vals_[i]));
+  }
 }
-void StreamOutput8RawComponent::onClear() { output_list_->clear(); received_count_=0; updateDisplay(); }
+void StreamOutput8RawComponent::onClear() { output_list_->clear(); stored_vals_.clear(); received_count_=0; updateDisplay(); }
 void StreamOutput8RawComponent::addValueToList(uint8_t val) {
   received_count_++;
-  output_list_->addItem(QString("#%1: 0x%2 (%3)").arg(received_count_-1).arg(val,2,16,QChar('0')).toUpper().arg(val));
-  output_list_->scrollToBottom();
-  if (grid_mode_) rebuildGridDisplay(); updateDisplay();
+  stored_vals_.append(QString("0x%1 (%2)").arg(val,2,16,QChar('0')).toUpper().arg(val));
+  if (grid_mode_) { rebuildGridDisplay(); }
+  else { output_list_->addItem(QString("#%1: %2").arg(received_count_-1).arg(stored_vals_.last())); output_list_->scrollToBottom(); }
+  updateDisplay();
 }
 void StreamOutput8RawComponent::rebuildGridDisplay() {
-  QStringList vals;
-  for (int i=0;i<output_list_->count();i++) {
-    auto *it=output_list_->item(i); if(!it) continue;
-    QString t=it->text(); int c=t.indexOf(':'); if(c>=0) vals.append(t.mid(c+1).trimmed());
-  }
   output_list_->clear();
   for (int r=0;r<grid_rows_;r++) {
     QString row;
-    for (int c=0;c<grid_cols_;c++) { int idx=r*grid_cols_+c; row+=(idx<vals.size())?vals[idx]:"----"; if(c<grid_cols_-1) row+="  "; }
+    for (int c=0;c<grid_cols_;c++) { int idx=r*grid_cols_+c; row+=(idx<stored_vals_.size())?stored_vals_[idx]:"----"; if(c<grid_cols_-1) row+="  "; }
     output_list_->addItem(row);
   }
 }

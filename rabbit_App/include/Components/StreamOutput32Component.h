@@ -5,6 +5,7 @@
 #include <QListWidget>
 #include <QLabel>
 #include <QPushButton>
+#include <QStringList>
 
 #include "Components/AbstractComponent.h"
 #include "Components/ComponentMacro.h"
@@ -49,6 +50,7 @@ private:
   int grid_rows_ = 4;
   int grid_cols_ = 4;
   int received_count_ = 0;
+  QStringList stored_vals_;
   int prev_clk_ = 0;
 };
 
