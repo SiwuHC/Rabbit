@@ -9,7 +9,6 @@
 
 using namespace rabbit_App::component;
 
-static constexpr int kClkHold = 20;
 static constexpr int kDataWidth = 8;
 
 StreamInput8RawComponent::StreamInput8RawComponent(QWidget *parent)
@@ -42,7 +41,7 @@ uint64_t StreamInput8RawComponent::getWriteData() const {
   const auto &p = input_ports_;
   if (total_sent_ >= target_count_) return 0;
   if (phase_ == IDLE) { if (value_queue_.isEmpty()) return 0; current_val_=value_queue_.dequeue(); phase_=SETUP; hold_cnt_=0; }
-  hold_cnt_++; if (hold_cnt_ < kClkHold) return last_output_;
+  hold_cnt_++; if (hold_cnt_ < clk_hold_) return last_output_;
   hold_cnt_=0;
   uint64_t data=0; int clk=0,stb=0;
   switch (phase_) {
@@ -78,10 +77,10 @@ void StreamInput8RawComponent::updateCounter() const {
 COMPONENT_CLASS_DEFINITION(StreamInput8,4,5)
 
 QList<NumberSettingInfo> StreamInput8RawComponent::numberSettings() const {
-  return {{"target_count","Target Count",1,1024,target_count_}};
+  return {{"target_count","Target Count",1,1024,target_count_},{"clk_hold","CLK Hold",1,100,clk_hold_}};
 }
 void StreamInput8RawComponent::setNumberSetting(const QString &key, int value) {
-  if (key=="target_count") { target_count_=value; updateCounter(); }
+  if (key=="target_count") { target_count_=value; updateCounter(); } else if (key=="clk_hold") { clk_hold_=value; }
 }
 void StreamInput8Component::onSettingsBtnClicked() {
   auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping,SettingsFeature::NumberSetting>(this,this);

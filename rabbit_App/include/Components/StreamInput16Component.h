@@ -5,7 +5,6 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QLabel>
-#include <QPushButton>
 #include <QQueue>
 
 #include "Components/AbstractComponent.h"
@@ -26,7 +25,6 @@ public:
   void processReadData(QQueue<uint64_t> &read_queue) override;
   uint64_t getWriteData() const override;
 
-  // Settings Feature support
   QList<NumberSettingInfo> numberSettings() const override;
   void setNumberSetting(const QString &key, int value) override;
 
@@ -48,8 +46,8 @@ private:
   mutable QQueue<uint16_t> value_queue_;
   mutable int total_sent_ = 0;
   int target_count_ = 32;
+  int clk_hold_ = 20;
 
-  // Per-word CLK/STROBE state machine (parallel 18-port protocol)
   enum WordPhase { IDLE, SETUP, RISING, FALLING };
   mutable WordPhase phase_ = IDLE;
   mutable int hold_cnt_ = 0;
@@ -58,5 +56,4 @@ private:
 };
 
 } // namespace rabbit_App::component
-
-#endif // STREAM_INPUT_16_COMPONENT_H
+#endif

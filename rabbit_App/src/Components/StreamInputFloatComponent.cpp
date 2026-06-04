@@ -8,7 +8,6 @@
 
 using namespace rabbit_App::component;
 
-static constexpr int kClkHold = 20;
 static constexpr int kDataWidth = 32;
 
 StreamInputFloatRawComponent::StreamInputFloatRawComponent(QWidget *parent)
@@ -43,7 +42,7 @@ uint64_t StreamInputFloatRawComponent::getWriteData() const {
   if (phase_ == IDLE) { if (value_queue_.isEmpty()) return 0;
     memcpy(&current_val_, &value_queue_.head(), 4); value_queue_.dequeue();
     phase_=SETUP; hold_cnt_=0; }
-  hold_cnt_++; if (hold_cnt_ < kClkHold) return last_output_;
+  hold_cnt_++; if (hold_cnt_ < clk_hold_) return last_output_;
   hold_cnt_=0;
   uint64_t data=0; int clk=0,stb=0;
   switch (phase_) {
@@ -81,10 +80,10 @@ void StreamInputFloatRawComponent::updateCounter() const {
 COMPONENT_CLASS_DEFINITION(StreamInputFloat,4,5)
 
 QList<NumberSettingInfo> StreamInputFloatRawComponent::numberSettings() const {
-  return {{"target_count","Target Count",1,1024,target_count_}};
+  return {{"target_count","Target Count",1,1024,target_count_},{"clk_hold","CLK Hold",1,100,clk_hold_}};
 }
 void StreamInputFloatRawComponent::setNumberSetting(const QString &key, int value) {
-  if (key=="target_count") { target_count_=value; updateCounter(); }
+  if (key=="target_count") { target_count_=value; updateCounter(); } else if (key=="clk_hold") { clk_hold_=value; }
 }
 void StreamInputFloatComponent::onSettingsBtnClicked() {
   auto dlg=new ComponentSettingsDialogWithFeatures<SettingsFeature::ArrayPortMapping,SettingsFeature::NumberSetting>(this,this);

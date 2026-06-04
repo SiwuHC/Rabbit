@@ -46,6 +46,7 @@ private:
   mutable QQueue<uint32_t> value_queue_;
   mutable int total_sent_ = 0;
   int target_count_ = 32;
+  int clk_hold_ = 20;
 
   enum WordPhase { IDLE, SETUP, RISING, FALLING };
   mutable WordPhase phase_ = IDLE;
