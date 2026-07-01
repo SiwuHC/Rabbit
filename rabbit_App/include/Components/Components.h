@@ -29,6 +29,7 @@
 #include "SwitchComponent.h"         // IWYU pragma: export
 #include "TextLCDComponent.h"        // IWYU pragma: export
 #include "PS2KeyboardComponent.h"
+#include "NewKeyboardComponent.h"
 #include "StreamInput8Component.h"     // IWYU pragma: export
 #include "StreamInput16Component.h"    // IWYU pragma: export
 #include "StreamInput32Component.h"    // IWYU pragma: export
@@ -41,7 +42,7 @@
 // add new input component here
 inline QList<QString> inputComponents() {
   return QList<QString>{"Switch",       "Button",      "KeyPad",       "SmallKeyPad",
-                        "RotaryButton", "PS2Keyboard", "DecimalInput8",
+                        "RotaryButton", "PS2Keyboard", "NewKeyboard",  "DecimalInput8",
                         "DecimalInput16", "DecimalInput32", "DecimalInputFloat",
                         "StreamInput8", "StreamInput16", "StreamInput32",
                         "StreamInputFloat"};

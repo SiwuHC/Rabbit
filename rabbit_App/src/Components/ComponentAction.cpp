@@ -44,6 +44,8 @@ ComponentAction *ComponentActionFactory::create(const QString &text,
     //   action->setIcon(NewComponentClass::componentIcon());
   } else if(text == "PS2Keyboard"){
     action->setIcon(PS2KeyboardComponent::componentIcon());
+  } else if(text == "NewKeyboard"){
+    action->setIcon(NewKeyboardComponent::componentIcon());
   } else if(text == "DecimalInput8"){
     action->setIcon(DecimalInput8Component::componentIcon());
   } else if(text == "DataCapture8"){

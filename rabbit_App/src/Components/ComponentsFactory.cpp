@@ -37,6 +37,8 @@ AbstractComponent *ComponentsFactory::create(const QString &component_name,
     //   new_component = new NewComponentClass(parent);
   } else if (component_name == "PS2Keyboard") {
     new_component = new PS2KeyboardComponent(parent);
+  } else if (component_name == "NewKeyboard") {
+    new_component = new NewKeyboardComponent(parent);
   } else if (component_name == "DecimalInput8") {
     new_component = new DecimalInput8Component(parent);
   } else if (component_name == "DataCapture8") {

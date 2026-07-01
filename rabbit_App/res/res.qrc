@@ -45,6 +45,7 @@
         <!-- Add new icon here -->
         <!-- <file>icons/components/New-icon-here.png</file> -->
         <file>icons/components/PS2Keyboard-icon.png</file>
+        <file>icons/components/NewKeyboard-icon.png</file>
         <file>icons/components/DecimalInput8-icon.png</file>
         <file>icons/components/DataCapture8-icon.png</file>
         <file>icons/components/DecimalInput16-icon.png</file>
@@ -64,5 +65,8 @@
         <file>icons/icons8-keyboard-94.png</file>
         <file>icons/icons8-keyboard-onfocus-94.png</file>
         <file>icons/icons8-keyboard-inuse-94.png</file>
+        <file>icons/icons8-nkeyboard-94.png</file>
+        <file>icons/icons8-nkeyboard-onfocus-94.png</file>
+        <file>icons/icons8-nkeyboard-inuse-94.png</file>
     </qresource>
 </RCC>
