@@ -43,6 +43,12 @@ To find more details about the code of component part, you can refer to the foll
 
 ## 3. Write the code of the new component
 
+A worked example that goes further than the small ones: `SeriWrapComponent`
+(`rabbit_App/{include,src}/Components/SeriWrapComponent.*`) keeps its protocol
+logic in a Qt-free helper class (`SeriWrapProtocol`) so the pin-level behaviour
+can be unit-tested without a board or a GUI — see
+`rabbit_App/tests/seriwrap_protocol_test.cpp` and `doc/SeriWrapComponent.md`.
+
 You can refer to the code of the existing components to write the code of the new component. Normally, you need to create two files :
 * `NewComponent.h` : the header file of the new component, in `rabbit_App/include/Components`
 * `NewComponent.cpp` : the source file of the new component, in `rabbit_App/src/Components`

@@ -55,6 +55,8 @@ AbstractComponent *ComponentsFactory::create(const QString &component_name,
     new_component = new DecimalInputFloatComponent(parent);
   } else if (component_name == "DataCaptureFloat") {
     new_component = new DataCaptureFloatComponent(parent);
+  } else if (component_name == "SeriWrap") {
+    new_component = new SeriWrapComponent(parent);
   } else if (component_name == "StreamInput8") {
     new_component = new StreamInput8Component(parent);
   } else if (component_name == "StreamInput16") {

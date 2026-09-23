@@ -38,6 +38,7 @@
 #include "StreamOutput16Component.h"   // IWYU pragma: export
 #include "StreamOutput32Component.h"   // IWYU pragma: export
 #include "StreamOutputFloatComponent.h" // IWYU pragma: export
+#include "SeriWrapComponent.h"         // IWYU pragma: export
 
 // add new input component here
 inline QList<QString> inputComponents() {
@@ -45,7 +46,10 @@ inline QList<QString> inputComponents() {
                         "RotaryButton", "PS2Keyboard", "NewKeyboard",  "DecimalInput8",
                         "DecimalInput16", "DecimalInput32", "DecimalInputFloat",
                         "StreamInput8", "StreamInput16", "StreamInput32",
-                        "StreamInputFloat"};
+                        "StreamInputFloat",
+                        // Drives a whole SeriWrap wrapper (input frame + output
+                        // frame) instead of one stream direction at a time.
+                        "SeriWrap"};
 }
 
 // add new output conponent here

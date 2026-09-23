@@ -78,6 +78,8 @@ ComponentAction *ComponentActionFactory::create(const QString &text,
     action->setIcon(StreamOutput32Component::componentIcon());
   } else if(text == "StreamOutputFloat"){
     action->setIcon(StreamOutputFloatComponent::componentIcon());
+  } else if (text == "SeriWrap") {
+    action->setIcon(SeriWrapComponent::componentIcon());
   } else {
     std::runtime_error("Unknown component type");
   }

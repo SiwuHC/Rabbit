@@ -109,6 +109,21 @@ Refer to the [User Manual](./doc/RabbitHelpDoc.md) for more information.
 
 Refer to the [Developer Manual](./doc/RabbitDevDoc.md) for more information.
 
+## SeriWrap wrappers <a name = "seriwrap"></a>
+
+If the FPGA design is a **SeriWrap**-generated wrapper (a kernel behind a serial
+link), use the `SeriWrap` component: it drives the whole link (input frame +
+output frame) and takes the frame size, word width and packing from the
+`<top>__stream_manifest.json` that SeriWrap writes next to the wrapper.
+
+See [doc/SeriWrapComponent.md](./doc/SeriWrapComponent.md).  The project file can
+be generated and checked without any manual pin clicking:
+
+```bash
+python3 SeriWrap/tools/gen_rabbit_project.py --manifest ... --cons ... --out x.rbtprj
+python3 SeriWrap/tools/check_rabbit_project.py --project x.rbtprj --cons ...
+```
+
 ## Add New Component <a name = "add_new_component"></a>
 
 Refer to the [Add New Component Manual](./doc/AddNewComponent.md) for more information.
