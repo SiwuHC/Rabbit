@@ -21,6 +21,7 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
+#include <QTableWidget>
 #include <QListWidget>
 #include <QMetaObject>
 #include <QQueue>
@@ -488,6 +489,26 @@ static void testSeriWrapComponent() {
   check(textsContain(b.raw, "manifest:"), "the log reports the loaded manifest");
   checkEq(b.raw->getWriteData(), 0, "idle after loading a manifest (nothing armed)");
 
+  // The input UI is one row per kernel port (the Stream components' one-value
+  // per widget style), labelled with the manifest's port names; the output side
+  // mirrors it so a 16-port kernel stays readable.
+  auto *in_tbl = b.raw->findChild<QTableWidget *>("in_table");
+  auto *out_tbl = b.raw->findChild<QTableWidget *>("out_table");
+  check(in_tbl != nullptr && out_tbl != nullptr, "SeriWrap: per-port input/output tables exist");
+  if (in_tbl) {
+    checkEq(in_tbl->rowCount(), 2, "SeriWrap: one input row per manifest input port");
+    check(in_tbl->item(0, 0) && in_tbl->item(0, 0)->text() == "a" &&
+              in_tbl->item(1, 0) && in_tbl->item(1, 0)->text() == "b",
+          "SeriWrap: input rows are labelled a, b (manifest order)");
+    check(in_tbl->cellWidget(0, 1) != nullptr && in_tbl->cellWidget(1, 1) != nullptr,
+          "SeriWrap: every input row has its own value editor");
+  }
+  if (out_tbl) {
+    checkEq(out_tbl->rowCount(), 2, "SeriWrap: one output row per manifest output port");
+    check(out_tbl->item(0, 0) && out_tbl->item(0, 0)->text() == "y0",
+          "SeriWrap: output rows are labelled with the port names");
+  }
+
   // The link is ready-gated: the design's READY bit has to be seen in a read
   // frame before the component may start a frame (that is what the GUI's
   // per-frame processReadData() provides).
@@ -497,8 +518,11 @@ static void testSeriWrapComponent() {
   feedRead(b.raw, {1ULL << ready_bit});
   checkEq(b.raw->getWriteData(), 0, "ready alone does not start a frame");
 
-  auto *edit = b.raw->findChild<QLineEdit *>();
-  check(edit != nullptr, "the component has a value editor");
+  // The SeriWrap component has one value editor per kernel input port plus a
+  // "bulk paste" field; the bulk field is the one the tests type into (its
+  // text is applied to the rows when Send frame is pressed).
+  auto *edit = b.raw->findChild<QLineEdit *>("bulk_edit");
+  check(edit != nullptr, "the component has a bulk value editor");
   if (edit) {
     edit->setText("0x1234, 0x5678");
     QMetaObject::invokeMethod(b.raw, "onSendClicked");
@@ -524,6 +548,28 @@ static void testSeriWrapComponent() {
     }
   }
 
+  // Values typed straight into the per-port rows (no bulk field) must reach the
+  // wire in manifest port order: row 0 -> a, row 1 -> b.
+  if (in_tbl && in_tbl->cellWidget(0, 1) && in_tbl->cellWidget(1, 1)) {
+    b.raw->reset();                        // the previous block left a frame busy
+    static_cast<QLineEdit *>(in_tbl->cellWidget(0, 1))->setText("0x1234");
+    static_cast<QLineEdit *>(in_tbl->cellWidget(1, 1))->setText("0x5678");
+    feedRead(b.raw, {1ULL << ready_bit});
+    QMetaObject::invokeMethod(b.raw, "onSendClicked");
+    QList<uint64_t> rw;
+    for (int i = 0; i < 8; ++i) rw << b.raw->getWriteData();
+    const auto &ip_r = b.raw->inputPorts();
+    bool a_ok = false, b_ok = false;
+    for (uint64_t word : rw) {
+      uint64_t v = 0;
+      for (int i = 0; i < 16; ++i)
+        if ((word >> ip_r[i].pin_index) & 1ULL) v |= 1ULL << i;
+      if (v == 0x1234) a_ok = true;
+      if (v == 0x5678) b_ok = true;
+    }
+    check(a_ok && b_ok, "SeriWrap: per-port rows carry a=0x1234 then b=0x5678 in order");
+  }
+
   // Decimal is accepted as well as hex (the editor hint says "dec or 0x.."):
   // the same values typed in decimal must produce the same first word.
   Box b2 = make("SeriWrap");
@@ -533,7 +579,7 @@ static void testSeriWrapComponent() {
     if (sw2 && sw2->loadManifestFile(good, nullptr)) {
       const auto &op2 = b2.raw->outputPorts();
       feedRead(b2.raw, {1ULL << (op2[34].pin_index - 1)});
-      auto *edit2 = b2.raw->findChild<QLineEdit *>();
+      auto *edit2 = b2.raw->findChild<QLineEdit *>("bulk_edit");
       const auto &ip2 = b2.raw->inputPorts();
       if (edit2) {
         edit2->setText("4660, 22136");          // == 0x1234, 0x5678

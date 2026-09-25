@@ -2,9 +2,13 @@
 
 #include "Components/ComponentSettingsDialog.h"
 
+#include <algorithm>
+
 #include <QFileDialog>
 #include <QFont>
 #include <QHBoxLayout>
+#include <QHeaderView>
+#include <QTableWidget>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -39,29 +43,68 @@ SeriWrapRawComponent::SeriWrapRawComponent(QWidget *parent)
   status_label_->setStyleSheet("font-size:11px; font-weight:bold;");
   root->addWidget(status_label_);
 
+  auto setup_table = [](QTableWidget *t, const QString &c0, const QString &c1) {
+    t->setColumnCount(2);
+    t->setHorizontalHeaderLabels({c0, c1});
+    t->verticalHeader()->setVisible(false);
+    t->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    t->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    t->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    t->setSelectionMode(QAbstractItemView::NoSelection);
+    t->setStyleSheet("font-size:11px;");
+  };
+
+  // One row per kernel input port (like the Stream components, which take one
+  // value per widget) -- the row order is the manifest's port order.
+  in_table_ = new QTableWidget(0, 2, this);
+  in_table_->setObjectName("in_table");
+  setup_table(in_table_, "input port", "value");
+  in_table_->setMinimumHeight(130);
+  root->addWidget(in_table_, 3);
+
+  // One row per kernel output port, refreshed once per finished frame.
+  out_table_ = new QTableWidget(0, 2, this);
+  out_table_->setObjectName("out_table");
+  setup_table(out_table_, "output port", "last frame");
+  out_table_->setMinimumHeight(56);
+  out_table_->setMaximumHeight(150);
+  root->addWidget(out_table_, 0);
+
+  // Optional bulk paste: fills the rows in one go, then clears itself.  The
+  // rows are the source of truth for Send frame.
   value_edit_ = new QLineEdit(this);
-  value_edit_->setPlaceholderText("kernel input values, comma separated (dec or 0x..)");
+  value_edit_->setObjectName("bulk_edit");
+  value_edit_->setPlaceholderText("bulk paste: v0, v1, ... (dec or 0x..) then Fill");
   value_edit_->setStyleSheet("font-size:11px;");
   root->addWidget(value_edit_);
 
   auto *btn_row = new QHBoxLayout();
   send_btn_ = new QPushButton("Send frame", this);
+  send_btn_->setObjectName("send_btn");
+  bulk_btn_ = new QPushButton("Fill rows", this);
+  bulk_btn_->setObjectName("bulk_btn");
   manifest_btn_ = new QPushButton("Manifest...", this);
+  manifest_btn_->setObjectName("manifest_btn");
   auto_repeat_ = new QCheckBox("repeat", this);
+  auto_repeat_->setObjectName("repeat_box");
   btn_row->addWidget(send_btn_);
+  btn_row->addWidget(bulk_btn_);
   btn_row->addWidget(manifest_btn_);
   btn_row->addWidget(auto_repeat_);
   root->addLayout(btn_row);
 
   out_label_ = new QLabel("out: -", this);
+  out_label_->setObjectName("out_label");
   out_label_->setStyleSheet("font-size:11px;");
   out_label_->setWordWrap(true);
   root->addWidget(out_label_);
 
   log_list_ = new QListWidget(this);
+  log_list_->setObjectName("log_list");
   log_list_->setStyleSheet("font-size:10px;");
-  root->addWidget(log_list_);
+  root->addWidget(log_list_, 2);
 
+  connect(bulk_btn_, &QPushButton::clicked, this, [this] { applyBulkValues(); });
   connect(send_btn_, &QPushButton::clicked, this, &SeriWrapRawComponent::onSendClicked);
   connect(manifest_btn_, &QPushButton::clicked, this,
           &SeriWrapRawComponent::onLoadManifestClicked);
@@ -69,6 +112,7 @@ SeriWrapRawComponent::SeriWrapRawComponent(QWidget *parent)
           &SeriWrapRawComponent::onAutoRepeatToggled);
 
   rebuildFromBindings();
+  rebuildPortTables();   // one row per port; refreshed when a manifest loads
 }
 
 SeriWrapRawComponent::~SeriWrapRawComponent() {}
@@ -141,19 +185,95 @@ void SeriWrapRawComponent::reset() {
   refreshLabels();
 }
 
-void SeriWrapRawComponent::onSendClicked() {
-  // parse "v0, v1, ..." (decimal or 0x..) into the kernel input ports
-  pending_inputs_.clear();
-  const QString text = value_edit_ ? value_edit_->text() : QString();
+void SeriWrapRawComponent::rebuildPortTables() {
+  if (!in_table_ || !out_table_) return;
+  const int nin = std::max<int>(1, cfg_.n_in_ports);
+  const int nout = std::max<int>(1, cfg_.n_out_ports);
+
+  // Keep whatever the user already typed: the tables are rebuilt on every
+  // manifest load, and losing 16 hand-typed values there would be rude.
+  std::vector<QString> keep;
+  for (auto *e : in_edits_) keep.push_back(e ? e->text() : QString());
+
+  in_table_->clearContents();
+  in_table_->setRowCount(nin);
+  in_edits_.assign(nin, nullptr);
+  for (int i = 0; i < nin; ++i) {
+    const QString name = i < static_cast<int>(cfg_.in_port_names.size())
+                             ? QString::fromStdString(cfg_.in_port_names[i])
+                             : QString("in[%1]").arg(i);
+    auto *label = new QTableWidgetItem(name);
+    label->setFlags(Qt::ItemIsEnabled);
+    in_table_->setItem(i, 0, label);
+    auto *e = new QLineEdit(in_table_);
+    e->setObjectName(QString("in_value_%1").arg(i));
+    e->setPlaceholderText("0x0");
+    e->setText(i < static_cast<int>(keep.size()) && !keep[i].isEmpty()
+                   ? keep[i]
+                   : QString("0x0"));
+    e->setStyleSheet("font-size:11px;");
+    in_table_->setCellWidget(i, 1, e);
+    in_edits_[i] = e;
+  }
+
+  out_table_->clearContents();
+  out_table_->setRowCount(nout);
+  out_values_.assign(nout, nullptr);
+  for (int i = 0; i < nout; ++i) {
+    const QString name = i < static_cast<int>(cfg_.out_port_names.size())
+                             ? QString::fromStdString(cfg_.out_port_names[i])
+                             : QString("out[%1]").arg(i);
+    auto *label = new QTableWidgetItem(name);
+    label->setFlags(Qt::ItemIsEnabled);
+    out_table_->setItem(i, 0, label);
+    auto *v = new QTableWidgetItem("-");
+    v->setFlags(Qt::ItemIsEnabled);
+    out_table_->setItem(i, 1, v);
+    out_values_[i] = v;
+  }
+}
+
+void SeriWrapRawComponent::applyBulkValues() {
+  if (!value_edit_) return;
+  const QString text = value_edit_->text().trimmed();
+  if (text.isEmpty()) return;
+  std::vector<uint64_t> vals;
   for (const QString &tok : text.split(',', Qt::SkipEmptyParts)) {
     bool ok = false;
     const QString t = tok.trimmed();
     const quint64 v = t.startsWith("0x", Qt::CaseInsensitive)
                           ? t.mid(2).toULongLong(&ok, 16)
                           : t.toULongLong(&ok, 10);
+    vals.push_back(ok ? v : 0ULL);
+  }
+  for (size_t i = 0; i < in_edits_.size(); ++i) {
+    if (i < vals.size() && in_edits_[i]) {
+      in_edits_[i]->setText(QString("0x%1").arg(vals[i], 0, 16));
+    }
+  }
+  value_edit_->clear();
+}
+
+void SeriWrapRawComponent::collectInputs() {
+  pending_inputs_.clear();
+  for (auto *e : in_edits_) {
+    if (!e) continue;
+    const QString t = e->text().trimmed();
+    bool ok = false;
+    const quint64 v = t.startsWith("0x", Qt::CaseInsensitive)
+                          ? t.mid(2).toULongLong(&ok, 16)
+                          : t.toULongLong(&ok, 10);
     pending_inputs_.push_back(ok ? v : 0ULL);
   }
   if (pending_inputs_.empty()) pending_inputs_.assign(1, 0ULL);
+}
+
+void SeriWrapRawComponent::onSendClicked() {
+  // The per-port rows are the source of truth.  A bulk list typed into the
+  // paste field is applied to the rows first, so "paste 16 values + Send" and
+  // "type 16 values row by row + Send" do the same thing.
+  applyBulkValues();
+  collectInputs();
   frame_armed_ = true;
 }
 
@@ -238,6 +358,7 @@ bool SeriWrapRawComponent::loadManifestFile(const QString &path, QString *error)
   manifest_words_out_ = c.output_words;
   manifest_sync_ = c.sync_mode;
   rebuildFromBindings();
+  rebuildPortTables();   // port names/counts come from the manifest
   appendLog(QString("manifest: %1 in-words, %2 out-words, %3-bit words, %4")
                 .arg(c.input_words)
                 .arg(c.output_words)
@@ -257,7 +378,7 @@ uint64_t SeriWrapRawComponent::getWriteData() const {
       ++frames_sent_;
       // Show what is about to go on the wire: with the number of words and the
       // first few port values, a wrong frame is visible without a scope.
-      QString tx = QString("tx frame %1: %2 in-words, ports:")
+      QString tx = QString("TX frame %1: %2 in-words, ports:")
                        .arg(frames_sent_)
                        .arg(cfg_.input_words);
       for (size_t i = 0; i < pending_inputs_.size() && i < 8; ++i) {
@@ -285,7 +406,9 @@ void SeriWrapRawComponent::processReadData(QQueue<uint64_t> &read_queue) {
   if (done && !frame_reported_) {
     frame_reported_ = true;   // once per frame, not once per host access
     ++frames_done_;
-    QString line = QString("frame %1: ").arg(frames_done_);
+    // "RX" vs the "TX" line above: the log is the place where a wrong frame is
+    // visible, so the two directions must not look alike.
+    QString line = QString("RX frame %1: ").arg(frames_done_);
     for (int i = 0; i < cfg_.n_out_ports; ++i) {
       if (i) line += ", ";
       line += QString("0x%1").arg(proto_->outputPort(i), 0, 16);
@@ -314,6 +437,12 @@ void SeriWrapRawComponent::refreshLabels() {
     out += QString("0x%1").arg(proto_->outputPort(i), 0, 16);
   }
   out_label_->setText(out);
+  // Same numbers, one row per output port, so a 16-port kernel stays readable.
+  for (size_t i = 0; i < out_values_.size(); ++i) {
+    if (!out_values_[i]) continue;
+    out_values_[i]->setText(proto_ ? QString("0x%1").arg(proto_->outputPort(static_cast<int>(i)), 0, 16)
+                                   : QString("-"));
+  }
 }
 
 void SeriWrapRawComponent::appendLog(const QString &line) const {
@@ -340,7 +469,7 @@ void SeriWrapRawComponent::setNumberSetting(const QString &key, int value) {
   }
 }
 
-COMPONENT_CLASS_DEFINITION(SeriWrap, 5, 4)
+COMPONENT_CLASS_DEFINITION(SeriWrap, 6, 7)
 
 void SeriWrapComponent::onSettingsBtnClicked() {
   // ArrayPortMapping gives the per-port dropdowns that bind DATA[k]/CLK/... to

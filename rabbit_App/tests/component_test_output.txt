@@ -177,13 +177,20 @@
   ok   valid manifest loads []
   ok   the log reports the loaded manifest
   ok   idle after loading a manifest (nothing armed)  [got 0x0 want 0x0]
+  ok   SeriWrap: per-port input/output tables exist
+  ok   SeriWrap: one input row per manifest input port  [got 0x2 want 0x2]
+  ok   SeriWrap: input rows are labelled a, b (manifest order)
+  ok   SeriWrap: every input row has its own value editor
+  ok   SeriWrap: one output row per manifest output port  [got 0x2 want 0x2]
+  ok   SeriWrap: output rows are labelled with the port names
   ok   ready alone does not start a frame  [got 0x0 want 0x0]
-  ok   the component has a value editor
+  ok   the component has a bulk value editor
   ok   arming a frame produces non-zero serial words
   ok   the first input word carries 0x1234 on DATA[0..15]
+  ok   SeriWrap: per-port rows carry a=0x1234 then b=0x5678 in order
   ok   decimal input works too: 4660 -> 0x1234 on DATA[0..15]
   ok   an unparsable token yields 0, not garbage
   ok   processReadData(empty) is a no-op
   ok   reset() on a component without an active frame is safe
 
-========== component tests: 177 checks, 0 FAIL ==========
+========== component tests: 184 checks, 0 FAIL ==========

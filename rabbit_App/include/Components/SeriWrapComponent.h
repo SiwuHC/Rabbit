@@ -24,6 +24,7 @@
 #include <QQueue>
 #include <QPushButton>
 #include <QCheckBox>
+#include <QTableWidget>
 
 #include <memory>
 
@@ -71,12 +72,26 @@ private slots:
 private:
   void rebuildFromBindings() const;
   void refreshLabels();
+  /// One editable row per kernel input port, one read-only row per kernel
+  /// output port.  Called after a manifest loads (that is where the port names
+  /// and counts come from).
+  void rebuildPortTables();
+  /// Copy the comma separated "bulk" field into the per-port rows (one value
+  /// per port) and clear it.
+  void applyBulkValues();
+  /// Read the per-port rows into pending_inputs_ (one value per input port).
+  void collectInputs();
   /// const because getWriteData(), which reports what it puts on the wire, is
   /// itself const (the log widget is reached through a pointer member).
   void appendLog(const QString &line) const;
 
   // widget bits
-  QLineEdit *value_edit_;
+  QLineEdit *value_edit_;          // bulk paste field ("v0, v1, ...")
+  QTableWidget *in_table_;         // per-port input rows (port | value)
+  QTableWidget *out_table_;        // per-port output rows (port | last frame)
+  std::vector<QLineEdit *> in_edits_;
+  std::vector<QTableWidgetItem *> out_values_;
+  QPushButton *bulk_btn_;
   QPushButton *send_btn_;
   QPushButton *manifest_btn_;
   QCheckBox *auto_repeat_;
