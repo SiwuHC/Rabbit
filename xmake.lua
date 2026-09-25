@@ -73,6 +73,10 @@ target("rabbit_App")
 -- exactly the API the GUI controllers use.  No board and no display (run it with
 -- QT_QPA_PLATFORM=offscreen).
 target("component_test")
+    -- Not a default target: without this, "xmake run" runs the app AND the
+    -- component tests.  Run them explicitly:
+    --   xmake run component_test        (or xmake build component_test)
+    set_default(false)
     add_rules("qt.console")
     set_kind("binary")
     add_defines("RABBIT_APP")

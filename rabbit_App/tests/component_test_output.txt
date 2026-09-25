@@ -181,7 +181,9 @@
   ok   the component has a value editor
   ok   arming a frame produces non-zero serial words
   ok   the first input word carries 0x1234 on DATA[0..15]
+  ok   decimal input works too: 4660 -> 0x1234 on DATA[0..15]
+  ok   an unparsable token yields 0, not garbage
   ok   processReadData(empty) is a no-op
   ok   reset() on a component without an active frame is safe
 
-========== component tests: 175 checks, 0 FAIL ==========
+========== component tests: 177 checks, 0 FAIL ==========

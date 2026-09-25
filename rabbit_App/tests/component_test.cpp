@@ -524,6 +524,58 @@ static void testSeriWrapComponent() {
     }
   }
 
+  // Decimal is accepted as well as hex (the editor hint says "dec or 0x.."):
+  // the same values typed in decimal must produce the same first word.
+  Box b2 = make("SeriWrap");
+  if (b2.raw) {
+    bindPins(b2.raw);
+    auto *sw2 = dynamic_cast<SeriWrapRawComponent *>(b2.raw);
+    if (sw2 && sw2->loadManifestFile(good, nullptr)) {
+      const auto &op2 = b2.raw->outputPorts();
+      feedRead(b2.raw, {1ULL << (op2[34].pin_index - 1)});
+      auto *edit2 = b2.raw->findChild<QLineEdit *>();
+      const auto &ip2 = b2.raw->inputPorts();
+      if (edit2) {
+        edit2->setText("4660, 22136");          // == 0x1234, 0x5678
+        QMetaObject::invokeMethod(b2.raw, "onSendClicked");
+        bool found_dec = false;
+        for (int i = 0; i < 8 && !found_dec; ++i) {
+          const uint64_t w = b2.raw->getWriteData();
+          uint64_t v = 0;
+          for (int j = 0; j < 16; ++j)
+            if ((w >> ip2[j].pin_index) & 1ULL) v |= 1ULL << j;
+          if (v == 0x1234) found_dec = true;
+        }
+        check(found_dec, "decimal input works too: 4660 -> 0x1234 on DATA[0..15]");
+      }
+    }
+  }
+
+  // A token that does not parse must become 0, not garbage.  Fresh instance:
+  // the previous frame is still in flight, so its words would be read instead.
+  Box b3 = make("SeriWrap");
+  if (b3.raw) {
+    bindPins(b3.raw);
+    auto *sw3 = dynamic_cast<SeriWrapRawComponent *>(b3.raw);
+    if (sw3 && sw3->loadManifestFile(good, nullptr)) {
+      const auto &op3 = b3.raw->outputPorts();
+      feedRead(b3.raw, {1ULL << (op3[34].pin_index - 1)});
+      auto *edit3 = b3.raw->findChild<QLineEdit *>();
+      const auto &ip3 = b3.raw->inputPorts();
+      if (edit3) {
+        edit3->setText("not-a-number");
+        QMetaObject::invokeMethod(b3.raw, "onSendClicked");
+        bool zeroish = true;
+        for (int i = 0; i < 4; ++i) {
+          const uint64_t w = b3.raw->getWriteData();
+          for (int j = 0; j < 16; ++j)
+            if ((w >> ip3[j].pin_index) & 1ULL) zeroish = false;
+        }
+        check(zeroish, "an unparsable token yields 0, not garbage");
+      }
+    }
+  }
+
   QQueue<uint64_t> empty;
   b.raw->processReadData(empty);
   check(true, "processReadData(empty) is a no-op");
