@@ -163,17 +163,25 @@ void SeriWrapRawComponent::onLoadManifestClicked() {
   const QString path = QFileDialog::getOpenFileName(
       this, "SeriWrap manifest", QString(), "SeriWrap manifest (*manifest.json *.json)");
   if (path.isEmpty()) return;
+  QString error;
+  if (!loadManifestFile(path, &error)) {
+    QMessageBox::warning(this, "SeriWrap", error);
+  }
+}
 
+bool SeriWrapRawComponent::loadManifestFile(const QString &path, QString *error) {
   QFile f(path);
   if (!f.open(QIODevice::ReadOnly)) {
-    QMessageBox::warning(this, "SeriWrap", "Cannot open " + path);
-    return;
+    if (error) *error = "Cannot open " + path;
+    appendLog("ERROR: cannot open " + path);
+    return false;
   }
   QJsonParseError err{};
   const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
   if (err.error != QJsonParseError::NoError || !doc.isObject()) {
-    QMessageBox::warning(this, "SeriWrap", "Invalid manifest: " + err.errorString());
-    return;
+    if (error) *error = "Invalid manifest: " + err.errorString();
+    appendLog("ERROR: invalid manifest");
+    return false;
   }
   const QJsonObject root = doc.object();
   const QJsonObject link = root.value("link").toObject();
@@ -236,6 +244,7 @@ void SeriWrapRawComponent::onLoadManifestClicked() {
                 .arg(c.word_width)
                 .arg(c.sync_mode ? "sync" : "async"));
   refreshLabels();
+  return true;
 }
 
 uint64_t SeriWrapRawComponent::getWriteData() const {

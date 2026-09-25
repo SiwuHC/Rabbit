@@ -68,3 +68,36 @@ target("rabbit_App")
             os.rm(path.filename(archive))
         end
     end)
+
+-- Headless component test: the Stream family + SeriWrapComponent, driven through
+-- exactly the API the GUI controllers use.  No board and no display (run it with
+-- QT_QPA_PLATFORM=offscreen).
+target("component_test")
+    add_rules("qt.console")
+    set_kind("binary")
+    add_defines("RABBIT_APP")
+    -- Only what the components need.  The rest of the app (MainWindow, waveform,
+    -- FPGA handlers) is not under test, and compiling it in parallel is what
+    -- exhausted this 8 GB machine and took the session harness down with it.
+    add_files("rabbit_App/tests/component_test.cpp")
+    add_files("rabbit_App/src/Components/**.cpp")
+    add_files("rabbit_App/src/Ports/**.cpp")
+    add_files("rabbit_App/src/Utils.cpp")
+    add_files("rabbit_App/src/ThreadTimer.cpp")
+    -- Only the headers whose Q_OBJECT classes this target links: the qt rule
+    -- mocs every header it is given, and moc-ing MainWindow/FPGA/WaveForm
+    -- headers would drag in classes whose sources are deliberately not
+    -- compiled here.  ThreadTimer.h and Ports/PortsFileReader.h are the two
+    -- non-component headers that components actually reference.
+    add_files("rabbit_App/include/Components/**.h")
+    add_files("rabbit_App/include/ThreadTimer.h")
+    add_files("rabbit_App/include/Ports/*.h")
+    add_frameworks("QtWidgets", "QtGui", "QtCore")
+    add_includedirs("rabbit_App/include")
+    add_includedirs("vlfd-ffi")
+    add_deps("TabToolbar")
+    add_linkgroups("vlfd_ffi", {static = true})
+    add_linkdirs("vlfd-ffi/target/release")
+    if is_plat("linux") then
+        add_syslinks("udev")
+    end

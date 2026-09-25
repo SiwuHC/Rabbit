@@ -53,6 +53,12 @@ public:
   QList<NumberSettingInfo> numberSettings() const override;
   void setNumberSetting(const QString &key, int value) override;
 
+  /// Parse and apply <top>__stream_manifest.json.  The "Manifest..." button is
+  /// only the file dialog: it calls this and shows the returned error text, so
+  /// the whole manifest -> link config -> pin map path can be driven headlessly
+  /// by the component tests.  Returns false and fills @p error on failure.
+  bool loadManifestFile(const QString &path, QString *error = nullptr);
+
 protected:
   void paintEvent(QPaintEvent *event) override;
   void initPorts() override;
