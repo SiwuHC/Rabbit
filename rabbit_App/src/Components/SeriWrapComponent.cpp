@@ -376,42 +376,11 @@ uint64_t SeriWrapRawComponent::getWriteData() const {
       frame_armed_ = false;
       frame_reported_ = false;
       ++frames_sent_;
-      // Show what is about to go on the wire: with the number of words and the
-      // first few port values, a wrong frame is visible without a scope.
-      // Every port value, not just the first few: with the whole vector in the
-      // log a wrong frame is visible without a scope.
-      QString tx = QString("TX frame %1: %2 in-words").arg(frames_sent_).arg(cfg_.input_words);
-      for (size_t i = 0; i < pending_inputs_.size(); ++i) {
-        if (i % 8 == 0) tx += "\n   ";
-        tx += QString(" %1=0x%2")
-                  .arg(i < cfg_.in_port_names.size()
-                           ? QString::fromStdString(cfg_.in_port_names[i])
-                           : QString("[%1]").arg(i))
-                  .arg(pending_inputs_[i], 0, 16);
-      }
-      appendLog(tx);
-      tx_words_.clear();
     } else {
       return 0;
     }
   }
-  const uint64_t out = proto_->nextWriteWord();
-  // Keep the actual wire words so the log can show what the kernel received.
-  tx_words_.push_back(out);
-  if (tx_words_.size() >= static_cast<size_t>(std::max(1, cfg_.input_words))) {
-    QString line = QString("TX words (%1):").arg(tx_words_.size());
-    for (size_t i = 0; i < tx_words_.size(); ++i) {
-      if (i % 16 == 0) line += "\n   ";
-      uint64_t v = 0;
-      for (int k = 0; k < cfg_.word_width && k < static_cast<int>(pins_.data_in.size()); ++k) {
-        if (pins_.data_in[k] >= 0 && ((tx_words_[i] >> pins_.data_in[k]) & 1ULL)) v |= 1ULL << k;
-      }
-      line += QString(" %1").arg(v, 2, 16, QChar('0'));
-    }
-    appendLog(line);
-    tx_words_.clear();
-  }
-  return out;
+  return proto_->nextWriteWord();
 }
 
 void SeriWrapRawComponent::processReadData(QQueue<uint64_t> &read_queue) {
