@@ -114,6 +114,9 @@ private:
   mutable uint32_t frames_sent_ = 0;
   mutable uint32_t frames_done_ = 0;
   mutable std::vector<uint64_t> pending_inputs_;
+  /// Raw words handed to the wire for the frame in flight, so the log can show
+  /// the data the kernel actually sees (packed from the manifest).
+  mutable std::vector<uint64_t> tx_words_;
   mutable QString inp_names_;
   mutable QString out_names_;
 
