@@ -96,6 +96,11 @@ public:
   uint64_t outputPort(int index) const;
   bool outputsReady() const { return out_received_ >= cfg_.output_words; }
   State state() const { return state_; }
+  /// Raw serial words taken off the wire for the frame in progress (as many as
+  /// outputWordsReceived()).  Lets a host show what actually arrived instead of
+  /// only the reconstructed port values.
+  const std::vector<uint64_t> &receivedWords() const { return received_words_; }
+
   /// True when the wrapper currently accepts a new word on s_ready.
   bool readySeen() const { return ready_seen_; }
   /// Diagnostics for the GUI.
@@ -111,6 +116,7 @@ private:
   std::vector<uint64_t> in_values_;
   std::vector<uint64_t> out_values_;
   std::vector<uint64_t> out_words_;
+  std::vector<uint64_t> received_words_;   ///< raw words taken off the wire
   int hold_frames_ = 20;
   int word_index_ = 0;
   int phase_ = 0;          ///< async: 0=setup 1=rising 2=falling

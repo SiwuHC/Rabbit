@@ -29,6 +29,7 @@ void SeriWrapProtocol::reset() {
   in_values_.assign(std::max(1, cfg_.n_in_ports), 0ULL);
   out_values_.assign(std::max(1, cfg_.n_out_ports), 0ULL);
   out_words_.assign(std::max(1, cfg_.output_words), 0ULL);
+  received_words_.clear();
   word_index_ = 0;
   phase_ = 0;
   hold_cnt_ = 0;
@@ -52,6 +53,7 @@ void SeriWrapProtocol::startFrame(const std::vector<uint64_t> &values) {
   }
   out_values_.assign(std::max(1, cfg_.n_out_ports), 0ULL);
   out_words_.assign(std::max(1, cfg_.output_words), 0ULL);
+  received_words_.clear();
   word_index_ = 0;
   phase_ = 0;
   hold_cnt_ = 0;
@@ -156,6 +158,7 @@ void SeriWrapProtocol::processRead(uint64_t word) {
       }
     }
     out_words_[out_received_] = data;
+    received_words_.push_back(data);
     scatterOutputWord(out_received_, data);
     ++out_received_;
     if (out_received_ >= cfg_.output_words) {

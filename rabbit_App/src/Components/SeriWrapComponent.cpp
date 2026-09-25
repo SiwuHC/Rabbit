@@ -253,7 +253,18 @@ uint64_t SeriWrapRawComponent::getWriteData() const {
     if (frame_armed_ || auto_repeat_on_) {
       proto_->startFrame(pending_inputs_);
       frame_armed_ = false;
+      frame_reported_ = false;
       ++frames_sent_;
+      // Show what is about to go on the wire: with the number of words and the
+      // first few port values, a wrong frame is visible without a scope.
+      QString tx = QString("tx frame %1: %2 in-words, ports:")
+                       .arg(frames_sent_)
+                       .arg(cfg_.input_words);
+      for (size_t i = 0; i < pending_inputs_.size() && i < 8; ++i) {
+        tx += QString(" 0x%1").arg(pending_inputs_[i], 0, 16);
+      }
+      if (pending_inputs_.size() > 8) tx += " ...";
+      appendLog(tx);
     } else {
       return 0;
     }
@@ -269,13 +280,21 @@ void SeriWrapRawComponent::processReadData(QQueue<uint64_t> &read_queue) {
   while (!read_queue.isEmpty()) {
     proto_->processRead(read_queue.dequeue());
   }
-  if (proto_->outputsReady() && proto_->state() == seriwrap::SeriWrapProtocol::State::Done) {
+  const bool done = proto_->outputsReady() &&
+                    proto_->state() == seriwrap::SeriWrapProtocol::State::Done;
+  if (done && !frame_reported_) {
+    frame_reported_ = true;   // once per frame, not once per host access
     ++frames_done_;
     QString line = QString("frame %1: ").arg(frames_done_);
     for (int i = 0; i < cfg_.n_out_ports; ++i) {
       if (i) line += ", ";
       line += QString("0x%1").arg(proto_->outputPort(i), 0, 16);
     }
+    line += QString("   [%1 words:").arg(proto_->receivedWords().size());
+    for (size_t i = 0; i < proto_->receivedWords().size() && i < 8; ++i) {
+      line += QString(" %1").arg(proto_->receivedWords()[i], 2, 16, QChar('0'));
+    }
+    line += "]";
     appendLog(line);
   }
   refreshLabels();
@@ -297,7 +316,7 @@ void SeriWrapRawComponent::refreshLabels() {
   out_label_->setText(out);
 }
 
-void SeriWrapRawComponent::appendLog(const QString &line) {
+void SeriWrapRawComponent::appendLog(const QString &line) const {
   if (!log_list_) return;
   log_list_->insertItem(0, line);
   while (log_list_->count() > 100) delete log_list_->takeItem(log_list_->count() - 1);

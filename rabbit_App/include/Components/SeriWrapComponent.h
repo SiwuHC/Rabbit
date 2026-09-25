@@ -71,7 +71,9 @@ private slots:
 private:
   void rebuildFromBindings() const;
   void refreshLabels();
-  void appendLog(const QString &line);
+  /// const because getWriteData(), which reports what it puts on the wire, is
+  /// itself const (the log widget is reached through a pointer member).
+  void appendLog(const QString &line) const;
 
   // widget bits
   QLineEdit *value_edit_;
@@ -88,6 +90,11 @@ private:
   mutable std::unique_ptr<seriwrap::SeriWrapProtocol> proto_;
   mutable bool frame_armed_ = false;
   mutable bool auto_repeat_on_ = false;
+  /// A finished frame is reported once.  outputWordsReceived() stays at its
+  /// final value until the next frame starts, so without this the log would
+  /// print the same frame on every host access (which looks like an endless
+  /// stream of frames in the GUI).
+  mutable bool frame_reported_ = false;
   mutable int hold_frames_ = 20;
   mutable uint32_t frames_sent_ = 0;
   mutable uint32_t frames_done_ = 0;
