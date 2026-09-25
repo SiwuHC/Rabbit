@@ -11,7 +11,9 @@ QT_QPA_PLATFORM=offscreen ./build/linux/x86_64/release/component_test
 QT_DIR=/home/camel/tools/qt/Qt/6.5.3/gcc_64 bash rabbit_App/tests/run_component_test.sh
 ```
 
-Last run: **175 checks, 0 FAIL** (`component_test.log`).
+Last run: **175 checks, 0 FAIL** (`rabbit_App/tests/component_test_output.txt`, the
+full per-check output; a fresh run also writes `component_test.log`, which their
+`.gitignore` excludes).
 
 ## What is covered
 

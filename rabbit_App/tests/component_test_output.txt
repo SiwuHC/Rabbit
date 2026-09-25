@@ -1,0 +1,187 @@
+
+== structure: factory, ports, settings, bound frame bits ==
+  ok   StreamInput8: factory creates the component
+  ok   StreamInput8: ports fit the board's pin tables
+  ok   StreamInput8: 10 input ports (DATA[0..7], CLK, STROBE), got 10
+  ok   StreamInput8: no output ports
+  ok   StreamInput8: port names DATA[i]/CLK/STROBE
+  ok   StreamInput8: every port is an Input
+  ok   StreamInput8: settings are target_count + clk_hold
+  ok   StreamInput8: frame bits unique and inside 0..63
+  ok   StreamInput8: first data pin bound to P151 at its declaration index  [got 0x0 want 0x0]
+  ok   StreamInput16: factory creates the component
+  ok   StreamInput16: ports fit the board's pin tables
+  ok   StreamInput16: 18 input ports (DATA[0..15], CLK, STROBE), got 18
+  ok   StreamInput16: no output ports
+  ok   StreamInput16: port names DATA[i]/CLK/STROBE
+  ok   StreamInput16: every port is an Input
+  ok   StreamInput16: settings are target_count + clk_hold
+  ok   StreamInput16: frame bits unique and inside 0..63
+  ok   StreamInput16: first data pin bound to P151 at its declaration index  [got 0x0 want 0x0]
+  ok   StreamInput32: factory creates the component
+  ok   StreamInput32: ports fit the board's pin tables
+  ok   StreamInput32: 34 input ports (DATA[0..31], CLK, STROBE), got 34
+  ok   StreamInput32: no output ports
+  ok   StreamInput32: port names DATA[i]/CLK/STROBE
+  ok   StreamInput32: every port is an Input
+  ok   StreamInput32: settings are target_count + clk_hold
+  ok   StreamInput32: frame bits unique and inside 0..63
+  ok   StreamInput32: first data pin bound to P151 at its declaration index  [got 0x0 want 0x0]
+  ok   StreamInputFloat: factory creates the component
+  ok   StreamInputFloat: ports fit the board's pin tables
+  ok   StreamInputFloat: 34 input ports (DATA[0..31], CLK, STROBE), got 34
+  ok   StreamInputFloat: no output ports
+  ok   StreamInputFloat: port names DATA[i]/CLK/STROBE
+  ok   StreamInputFloat: every port is an Input
+  ok   StreamInputFloat: settings are target_count + clk_hold
+  ok   StreamInputFloat: frame bits unique and inside 0..63
+  ok   StreamInputFloat: first data pin bound to P151 at its declaration index  [got 0x0 want 0x0]
+  ok   StreamOutput8: factory creates the component
+  ok   StreamOutput8: ports fit the board's pin tables
+  ok   StreamOutput8: 10 output ports (DATA[0..7], CLK, DATA_VALID), got 10
+  ok   StreamOutput8: no input ports
+  ok   StreamOutput8: port names DATA[i]/CLK/DATA_VALID
+  ok   StreamOutput8: every port is an Output
+  ok   StreamOutput8: frame bits unique and inside 0..63
+  ok   StreamOutput8: first data pin bound to P7 at its declaration index  [got 0x1 want 0x1]
+  ok   StreamOutput16: factory creates the component
+  ok   StreamOutput16: ports fit the board's pin tables
+  ok   StreamOutput16: 18 output ports (DATA[0..15], CLK, DATA_VALID), got 18
+  ok   StreamOutput16: no input ports
+  ok   StreamOutput16: port names DATA[i]/CLK/DATA_VALID
+  ok   StreamOutput16: every port is an Output
+  ok   StreamOutput16: frame bits unique and inside 0..63
+  ok   StreamOutput16: first data pin bound to P7 at its declaration index  [got 0x1 want 0x1]
+  ok   StreamOutput32: factory creates the component
+  ok   StreamOutput32: ports fit the board's pin tables
+  ok   StreamOutput32: 34 output ports (DATA[0..31], CLK, DATA_VALID), got 34
+  ok   StreamOutput32: no input ports
+  ok   StreamOutput32: port names DATA[i]/CLK/DATA_VALID
+  ok   StreamOutput32: every port is an Output
+  ok   StreamOutput32: frame bits unique and inside 0..63
+  ok   StreamOutput32: first data pin bound to P7 at its declaration index  [got 0x1 want 0x1]
+  ok   StreamOutputFloat: factory creates the component
+  ok   StreamOutputFloat: ports fit the board's pin tables
+  ok   StreamOutputFloat: 34 output ports (DATA[0..31], CLK, DATA_VALID), got 34
+  ok   StreamOutputFloat: no input ports
+  ok   StreamOutputFloat: port names DATA[i]/CLK/DATA_VALID
+  ok   StreamOutputFloat: every port is an Output
+  ok   StreamOutputFloat: frame bits unique and inside 0..63
+  ok   StreamOutputFloat: first data pin bound to P7 at its declaration index  [got 0x1 want 0x1]
+  ok   SeriWrap: factory creates the component
+  ok   SeriWrap: 34 input ports (DATA[0..31], CLK, STROBE), got 34
+  ok   SeriWrap: 35 output ports (DOUT[0..31], CLK_OUT, DATA_VALID, READY), got 35
+  ok   SeriWrap: input port names
+  ok   SeriWrap: output port names
+  ok   SeriWrap: 69 bound frame bits are unique and inside 0..63
+  ok   SeriWrap: setting is hold_frames
+  ok   SeriWrap: idle write frame is 0 (no manifest loaded)  [got 0x0 want 0x0]
+  ok   SeriWrap: still 0 after reset  [got 0x0 want 0x0]
+
+== StreamInput: 8/16/32-bit and float value paths ==
+  ok   StreamInput8: idle before any value  [got 0x0 want 0x0]
+  ok   StreamInput8: value entered through the QLineEdit slot
+  ok   StreamInput8: phase 1 CLK=0  [got 0x0 want 0x0]
+  ok   StreamInput8: phase 1 STROBE=1  [got 0x1 want 0x1]
+  ok   StreamInput8: phase 2 CLK=1 (the design's rising edge)  [got 0x1 want 0x1]
+  ok   StreamInput8: phase 2 STROBE=1  [got 0x1 want 0x1]
+  ok   StreamInput8: phase 3 CLK=0  [got 0x0 want 0x0]
+  ok   StreamInput8: phase 3 STROBE=0  [got 0x0 want 0x0]
+  ok   StreamInput8: data bits  [got 0xab want 0xab]
+  ok   StreamInput8: data held during phase 3  [got 0xab want 0xab]
+  ok   StreamInput8: back to idle after one value  [got 0x0 want 0x0]
+  ok   StreamInput8: frame only drives its own pins
+  ok   StreamInput16: idle before any value  [got 0x0 want 0x0]
+  ok   StreamInput16: value entered through the QLineEdit slot
+  ok   StreamInput16: phase 1 CLK=0  [got 0x0 want 0x0]
+  ok   StreamInput16: phase 1 STROBE=1  [got 0x1 want 0x1]
+  ok   StreamInput16: phase 2 CLK=1 (the design's rising edge)  [got 0x1 want 0x1]
+  ok   StreamInput16: phase 2 STROBE=1  [got 0x1 want 0x1]
+  ok   StreamInput16: phase 3 CLK=0  [got 0x0 want 0x0]
+  ok   StreamInput16: phase 3 STROBE=0  [got 0x0 want 0x0]
+  ok   StreamInput16: data bits  [got 0xabcd want 0xabcd]
+  ok   StreamInput16: data held during phase 3  [got 0xabcd want 0xabcd]
+  ok   StreamInput16: back to idle after one value  [got 0x0 want 0x0]
+  ok   StreamInput16: frame only drives its own pins
+  ok   StreamInput32: idle before any value  [got 0x0 want 0x0]
+  ok   StreamInput32: value entered through the QLineEdit slot
+  ok   StreamInput32: phase 1 CLK=0  [got 0x0 want 0x0]
+  ok   StreamInput32: phase 1 STROBE=1  [got 0x1 want 0x1]
+  ok   StreamInput32: phase 2 CLK=1 (the design's rising edge)  [got 0x1 want 0x1]
+  ok   StreamInput32: phase 2 STROBE=1  [got 0x1 want 0x1]
+  ok   StreamInput32: phase 3 CLK=0  [got 0x0 want 0x0]
+  ok   StreamInput32: phase 3 STROBE=0  [got 0x0 want 0x0]
+  ok   StreamInput32: data bits  [got 0xdeadbeef want 0xdeadbeef]
+  ok   StreamInput32: data held during phase 3  [got 0xdeadbeef want 0xdeadbeef]
+  ok   StreamInput32: back to idle after one value  [got 0x0 want 0x0]
+  ok   StreamInput32: frame only drives its own pins
+  ok   StreamInputFloat: idle before any value  [got 0x0 want 0x0]
+  ok   StreamInputFloat: value entered through the QLineEdit slot
+  ok   StreamInputFloat: phase 1 CLK=0  [got 0x0 want 0x0]
+  ok   StreamInputFloat: phase 1 STROBE=1  [got 0x1 want 0x1]
+  ok   StreamInputFloat: phase 2 CLK=1 (the design's rising edge)  [got 0x1 want 0x1]
+  ok   StreamInputFloat: phase 2 STROBE=1  [got 0x1 want 0x1]
+  ok   StreamInputFloat: phase 3 CLK=0  [got 0x0 want 0x0]
+  ok   StreamInputFloat: phase 3 STROBE=0  [got 0x0 want 0x0]
+  ok   StreamInputFloat: data bits  [got 0x3fc00000 want 0x3fc00000]
+  ok   StreamInputFloat: data held during phase 3  [got 0x3fc00000 want 0x3fc00000]
+  ok   StreamInputFloat: back to idle after one value  [got 0x0 want 0x0]
+  ok   StreamInputFloat: frame only drives its own pins
+
+== StreamInput: hold, ordering, target count ==
+  ok   clk_hold=3: SETUP phase held for 3 frames  [got 0x3 want 0x3]
+  ok   clk_hold=3: CLK=1 phase held for 3 frames (the latch edge)  [got 0x3 want 0x3]
+  ok   clk_hold=3: the closing FALLING state appears once, then idle  [got 0x1 want 0x1]
+  ok   clk_hold=3: data stable across the pulse  [got 0x123 want 0x123]
+  ok   two values, clk_hold=3: the first value gets 3 latch frames  [got 0x3 want 0x3]
+  ok   two values, clk_hold=3: the second value gets 3 latch frames  [got 0x3 want 0x3]
+  ok   two values, clk_hold=3: one closing FALLING frame for the burst  [got 0x1 want 0x1]
+  ok   the closing FALLING frame carries the last value  [got 0x2222 want 0x2222]
+  ok   two values, clk_hold=3: first value SETUP = clk_hold frames  [got 0x3 want 0x3]
+  ok   two values, clk_hold=3: later values SETUP = 2*clk_hold frames  [got 0x6 want 0x6]
+  ok   two queued values: first sent first  [got 0x1111 want 0x1111]
+  ok   two queued values: second sent second  [got 0x2222 want 0x2222]
+  ok   target_count=1: exactly one CLK pulse leaves the component  [got 0x1 want 0x1]
+  ok   target_count=1: the pulse carries the first value  [got 0x1 want 0x1]
+
+== StreamOutput: edge detection, DATA_VALID gating, widths ==
+  ok   StreamOutput8: CLK=0 does not capture
+  ok   StreamOutput8: rising edge without DATA_VALID does not capture
+  ok   StreamOutput8: held CLK=1 is not a new edge
+  ok   StreamOutput8: rising edge with DATA_VALID captures 5A
+  ok   StreamOutput8: a second edge captures again (found 2)
+  ok   StreamOutput8: reset() clears the display
+  ok   StreamOutput16: CLK=0 does not capture
+  ok   StreamOutput16: rising edge without DATA_VALID does not capture
+  ok   StreamOutput16: held CLK=1 is not a new edge
+  ok   StreamOutput16: rising edge with DATA_VALID captures BEEF
+  ok   StreamOutput16: a second edge captures again (found 2)
+  ok   StreamOutput16: reset() clears the display
+  ok   StreamOutput32: CLK=0 does not capture
+  ok   StreamOutput32: rising edge without DATA_VALID does not capture
+  ok   StreamOutput32: held CLK=1 is not a new edge
+  ok   StreamOutput32: rising edge with DATA_VALID captures DEADBEEF
+  ok   StreamOutput32: a second edge captures again (found 2)
+  ok   StreamOutput32: reset() clears the display
+  ok   StreamOutputFloat: CLK=0 does not capture
+  ok   StreamOutputFloat: rising edge without DATA_VALID does not capture
+  ok   StreamOutputFloat: held CLK=1 is not a new edge
+  ok   StreamOutputFloat: rising edge with DATA_VALID captures 1.5
+  ok   StreamOutputFloat: a second edge captures again (found 2)
+  ok   StreamOutputFloat: reset() clears the display
+
+== SeriWrapComponent: manifest, send path, read path ==
+  ok   the raw component is a SeriWrapRawComponent
+  ok   missing manifest file is rejected
+  ok   malformed manifest is rejected
+  ok   valid manifest loads []
+  ok   the log reports the loaded manifest
+  ok   idle after loading a manifest (nothing armed)  [got 0x0 want 0x0]
+  ok   ready alone does not start a frame  [got 0x0 want 0x0]
+  ok   the component has a value editor
+  ok   arming a frame produces non-zero serial words
+  ok   the first input word carries 0x1234 on DATA[0..15]
+  ok   processReadData(empty) is a no-op
+  ok   reset() on a component without an active frame is safe
+
+========== component tests: 175 checks, 0 FAIL ==========
