@@ -178,16 +178,29 @@ void SeriWrapProtocol::processRead(uint64_t word) {
 }
 
 uint64_t SeriWrapProtocol::packInputWord(int word_index) const {
+  return packInputWordFrom(in_values_, word_index);
+}
+
+std::vector<uint64_t> SeriWrapProtocol::previewInputWords(
+    const std::vector<uint64_t> &values) const {
+  std::vector<uint64_t> out;
+  out.reserve(static_cast<size_t>(std::max(0, cfg_.input_words)));
+  for (int i = 0; i < cfg_.input_words; ++i) out.push_back(packInputWordFrom(values, i));
+  return out;
+}
+
+uint64_t SeriWrapProtocol::packInputWordFrom(const std::vector<uint64_t> &values,
+                                             int word_index) const {
   uint64_t word = 0;
   if (word_index < 0 || word_index >= static_cast<int>(cfg_.in_packing.size())) {
     return word;
   }
   for (const Field &f : cfg_.in_packing[word_index]) {
-    if (f.port_index < 0 || f.port_index >= static_cast<int>(in_values_.size())) {
+    if (f.port_index < 0 || f.port_index >= static_cast<int>(values.size())) {
       continue;
     }
     const int width = f.port_hi - f.port_lo + 1;
-    const uint64_t field = (in_values_[f.port_index] >> f.port_lo) & maskOf(width);
+    const uint64_t field = (values[f.port_index] >> f.port_lo) & maskOf(width);
     const int nbits = f.word_hi - f.word_lo + 1;
     for (int i = 0; i < nbits; ++i) {
       if ((field >> i) & 1ULL) {

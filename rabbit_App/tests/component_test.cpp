@@ -21,7 +21,11 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPlainTextEdit>
+#include <QSplitter>
+#include <QStackedWidget>
 #include <QTableWidget>
+#include <QToolButton>
 #include <QListWidget>
 #include <QMetaObject>
 #include <QQueue>
@@ -497,9 +501,9 @@ static void testSeriWrapComponent() {
   check(in_tbl != nullptr && out_tbl != nullptr, "SeriWrap: per-port input/output tables exist");
   if (in_tbl) {
     checkEq(in_tbl->rowCount(), 2, "SeriWrap: one input row per manifest input port");
-    check(in_tbl->item(0, 0) && in_tbl->item(0, 0)->text() == "a" &&
-              in_tbl->item(1, 0) && in_tbl->item(1, 0)->text() == "b",
-          "SeriWrap: input rows are labelled a, b (manifest order)");
+    check(in_tbl->item(0, 0) && in_tbl->item(0, 0)->text().startsWith("a") &&
+              in_tbl->item(1, 0) && in_tbl->item(1, 0)->text().startsWith("b"),
+          "SeriWrap: input rows are labelled a, b (manifest order, width appended)");
     check(in_tbl->cellWidget(0, 1) != nullptr && in_tbl->cellWidget(1, 1) != nullptr,
           "SeriWrap: every input row has its own value editor");
   }
@@ -630,8 +634,229 @@ static void testSeriWrapComponent() {
   check(true, "reset() on a component without an active frame is safe");
 }
 
+
+// ---------------------------------------------------------------------------
+// Three-pane UI: a manifest where one port spans several words.
+static QString writeWideManifest(const QString &dir) {
+  QJsonObject root;
+  root["link"] = QJsonObject{{"width", 8}, {"sync_mode", true}};
+  root["frame"] = QJsonObject{{"input_words", 4}, {"output_words", 4},
+                              {"handshake", QJsonObject{{"ready", true}}}};
+  QJsonArray ins{QJsonObject{{"name", "a0"}, {"width", 32}}};
+  QJsonArray outs{QJsonObject{{"name", "y0"}, {"width", 32}}};
+  root["ports"] = QJsonObject{{"inputs", ins}, {"outputs", outs}};
+  QJsonArray in_words, out_words;
+  for (int i = 0; i < 4; ++i) {
+    const QJsonArray pb{8 * i + 7, 8 * i};
+    in_words.append(QJsonObject{
+        {"word", i},
+        {"fields", QJsonArray{QJsonObject{
+                       {"port", "a0"}, {"port_bits", pb}, {"word_bits", QJsonArray{7, 0}}}}}});
+    out_words.append(QJsonObject{
+        {"word", i},
+        {"fields", QJsonArray{QJsonObject{
+                       {"port", "y0"}, {"port_bits", pb}, {"word_bits", QJsonArray{7, 0}}}}}});
+  }
+  root["packing"] = QJsonObject{{"input", in_words}, {"output", out_words}};
+  const QString path = dir + "/component_test_manifest_wide.json";
+  QFile f(path);
+  f.open(QIODevice::WriteOnly | QIODevice::Truncate);
+  f.write(QJsonDocument(root).toJson());
+  f.close();
+  return path;
+}
+
+static void testSeriWrapPanes() {
+  group("SeriWrap: three panes, port/word granularity, streaming entry");
+  const QString dir = QDir::tempPath();
+  const QString wide = writeWideManifest(dir);
+
+  Box b = make("SeriWrap");
+  if (!b.raw) {
+    check(false, "SeriWrap missing");
+    return;
+  }
+  bindPins(b.raw);
+  auto *sw = dynamic_cast<SeriWrapRawComponent *>(b.raw);
+  if (!sw) {
+    check(false, "the raw component is a SeriWrapRawComponent");
+    return;
+  }
+
+  auto *split = b.raw->findChild<QSplitter *>("splitter");
+  check(split != nullptr && split->count() == 3,
+        "SeriWrap: three panes (config | input | output)");
+  check(b.raw->findChild<QWidget *>("cfg_box") && b.raw->findChild<QWidget *>("in_box") &&
+            b.raw->findChild<QWidget *>("out_box"),
+        "SeriWrap: the panes are the config / input / output boxes");
+  auto *stack = b.raw->findChild<QStackedWidget *>("input_stack");
+  check(stack != nullptr && stack->count() == 2, "SeriWrap: the input pane has two editors");
+  check(b.raw->findChild<QToolButton *>("view_btn") && b.raw->findChild<QToolButton *>("gran_btn"),
+        "SeriWrap: the config pane carries the view and granularity switches");
+  auto *prev = b.raw->findChild<QPlainTextEdit *>("word_preview");
+  check(prev != nullptr, "SeriWrap: the serial word stream is previewed");
+  auto *slot = b.raw->findChild<QLabel *>("slot_label");
+  check(slot != nullptr, "SeriWrap: the streaming editor names the next slot");
+
+  QString err;
+  check(sw->loadManifestFile(wide, &err), QString("wide manifest loads [%1]").arg(err));
+  check(sw->streamSlotCount() == 4, "word granularity: one slot per serial word");
+  sw->setGranularity(SeriWrapRawComponent::Granularity::Port);
+  check(sw->streamSlotCount() == 1, "port granularity: one slot per kernel port");
+  sw->setGranularity(SeriWrapRawComponent::Granularity::Word);
+
+  check(sw->commitStreamValue("0x44", &err), QString("stream w0 takes 0x44 [%1]").arg(err));
+  check(sw->commitStreamValue("0x33", &err), "stream w1 takes 0x33");
+  check(sw->commitStreamValue("0x22", &err), "stream w2 takes 0x22");
+  check(sw->commitStreamValue("0x11", &err), "stream w3 takes 0x11");
+  const auto vals = sw->inputValues();
+  check(vals.size() == 1 && vals[0] == 0x11223344ULL,
+        "four streamed words rebuild the 32-bit port (little endian)");
+  check(sw->streamFull(), "four committed words fill the frame");
+  check(sw->streamSlot() == 0, "the slot pointer wraps once the frame is full");
+
+  const auto pv = sw->previewWords();
+  check(pv.size() == 4 && pv[0] == 0x44 && pv[1] == 0x33 && pv[2] == 0x22 && pv[3] == 0x11,
+        "the word preview shows the 4 words in wire order");
+  check(!sw->commitStreamValue("0x1FF", &err), "a value wider than one word is refused");
+  check(sw->previewWords() == pv, "a refused value leaves the frame unchanged");
+
+  // the preview is not a second implementation: compare it with the wire
+  const auto &op = b.raw->outputPorts();
+  feedRead(b.raw, {1ULL << (op[34].pin_index - 1)});   // READY: the host may send
+  QMetaObject::invokeMethod(b.raw, "onSendClicked");
+  const auto &ip = b.raw->inputPorts();
+  std::vector<uint64_t> sent;
+  for (int i = 0; i < 8; i += 2) {          // one pulse + one gap frame per word
+    const uint64_t w = b.raw->getWriteData();
+    (void)b.raw->getWriteData();
+    uint64_t v = 0;
+    for (int k = 0; k < 8; ++k) {
+      if ((w >> ip[k].pin_index) & 1ULL) v |= 1ULL << k;
+    }
+    sent.push_back(v);
+  }
+  check(sent.size() >= 4 && sent[0] == pv[0] && sent[1] == pv[1] && sent[2] == pv[2] &&
+            sent[3] == pv[3],
+        "the words put on the wire are exactly the previewed words");
+
+  const auto before = sw->inputValues();
+  check(sw->commitStreamValue("0xAA", &err), "commit a value for the undo test");
+  sw->undoStreamValue();
+  check(sw->inputValues() == before, "undo restores the previous port values");
+
+  QMetaObject::invokeMethod(b.raw, "onClearClicked");
+  bool all_zero = true;
+  for (uint64_t v : sw->inputValues()) {
+    if (v) all_zero = false;
+  }
+  check(all_zero, "clear zeroes the editor");
+  check(sw->previewWords() == std::vector<uint64_t>(4, 0), "clear zeroes the preview");
+
+  // view switch keeps the data; auto-send queues the frame when it is complete
+  sw->setInputView(SeriWrapRawComponent::InputView::Streaming);
+  const auto stream_vals = sw->inputValues();
+  sw->setInputView(SeriWrapRawComponent::InputView::Ports);
+  check(sw->inputValues() == stream_vals, "switching editors keeps the entered values");
+  auto *view_btn = b.raw->findChild<QToolButton *>("view_btn");
+  if (view_btn) {
+    view_btn->click();
+    check(sw->inputView() == SeriWrapRawComponent::InputView::Streaming,
+          "the view switch toggles to the streaming editor");
+  }
+
+  // layout sanity: at the configured tile size (18x8 grid = 900x400) all three
+  // panes must get real estate, and the word preview must show the frame
+  b.wrap->resize(900, 400);
+  b.wrap->show();
+  QApplication::processEvents();
+  auto *cfg_box = b.raw->findChild<QWidget *>("cfg_box");
+  auto *in_box = b.raw->findChild<QWidget *>("in_box");
+  auto *out_box = b.raw->findChild<QWidget *>("out_box");
+  check(cfg_box && cfg_box->width() >= 150 && cfg_box->height() >= 200,
+        QString("config pane keeps its width and height (%1x%2)")
+            .arg(cfg_box ? cfg_box->width() : 0)
+            .arg(cfg_box ? cfg_box->height() : 0));
+  check(in_box && in_box->width() >= 250 && in_box->height() >= 200,
+        QString("input pane keeps its width and height (%1x%2)")
+            .arg(in_box ? in_box->width() : 0)
+            .arg(in_box ? in_box->height() : 0));
+  check(out_box && out_box->width() >= 250 && out_box->height() >= 200,
+        QString("output pane keeps its width and height (%1x%2)")
+            .arg(out_box ? out_box->width() : 0)
+            .arg(out_box ? out_box->height() : 0));
+  check(prev && !prev->toPlainText().trimmed().isEmpty(),
+        "the word preview shows the packed frame");
+  b.wrap->hide();
+
+  Box b2 = make("SeriWrap");
+  if (b2.raw) {
+    bindPins(b2.raw);
+    auto *sw2 = dynamic_cast<SeriWrapRawComponent *>(b2.raw);
+    if (sw2 && sw2->loadManifestFile(wide, nullptr)) {
+      auto *auto_box = b2.raw->findChild<QCheckBox *>("autosend_box");
+      check(auto_box != nullptr, "SeriWrap: the streaming editor has an auto-send box");
+      if (auto_box) {
+        auto_box->setChecked(true);
+        sw2->setGranularity(SeriWrapRawComponent::Granularity::Word);
+        sw2->commitStreamValue("0x1");
+        sw2->commitStreamValue("0x2");
+        sw2->commitStreamValue("0x3");
+        check(sw2->framesSent() == 0, "auto-send keeps quiet until the frame is full");
+        sw2->commitStreamValue("0x4");
+        (void)sw2->getWriteData();          // one host frame starts the queued frame
+        check(sw2->framesSent() == 1, "auto-send queues the frame once it is complete");
+      }
+      // a half-filled streaming frame is refused, a full one is not
+      QMetaObject::invokeMethod(b2.raw, "onClearClicked");
+      QMetaObject::invokeMethod(b2.raw, "onSendClicked");
+      check(sw2->framesSent() == 1, "Send refuses a half-filled streaming frame");
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Offscreen snapshot of the component: the layout is otherwise only visible in
+// the GUI, and the tests cannot check "does it look right".
+static int snapshot(const QString &out_path, const QString &manifest, bool streaming_view) {
+  Box b = make("SeriWrap");
+  if (!b.wrap || !b.raw) return 1;
+  b.wrap->resize(900, 400);
+  b.wrap->show();
+  QApplication::processEvents();
+  bindPins(b.raw);
+  auto *sw = dynamic_cast<SeriWrapRawComponent *>(b.raw);
+  if (sw) {
+    if (!manifest.isEmpty()) sw->loadManifestFile(manifest, nullptr);
+    sw->setInputView(streaming_view ? SeriWrapRawComponent::InputView::Streaming
+                                    : SeriWrapRawComponent::InputView::Ports);
+    // a few committed words, so the history/preview panes are not empty
+    for (int i = 0; i < 4 && sw->streamSlotCount() > i; ++i) {
+      QString err;
+      sw->commitStreamValue(QString("0x%1").arg(0x44 - i * 0x11, 0, 16), &err);
+    }
+    // one finished frame on the output side
+    const auto &op = b.raw->outputPorts();
+    const int w = 8;
+    feedRead(b.raw, {outFrame(op, w, 0x44, 0, 1)});
+    feedRead(b.raw, {outFrame(op, w, 0x33, 0, 1)});
+    feedRead(b.raw, {outFrame(op, w, 0x22, 0, 1)});
+    feedRead(b.raw, {outFrame(op, w, 0x11, 0, 1)});
+  }
+  QApplication::processEvents();
+  const bool ok = b.wrap->grab().save(out_path);
+  std::printf("snapshot %s -> %s\n", ok ? "saved" : "FAILED", qPrintable(out_path));
+  delete b.wrap;
+  return ok ? 0 : 1;
+}
+
 int main(int argc, char **argv) {
   QApplication app(argc, argv);
+  if (argc >= 3 && QString(argv[1]) == "--snapshot") {
+    const QString view = argc >= 5 ? QString(argv[4]) : QString("stream");
+    return snapshot(QString(argv[2]), argc >= 4 ? QString(argv[3]) : QString(),
+                    view != "ports");
+  }
   testStructure();
   group("StreamInput: 8/16/32-bit and float value paths");
   testStreamInputWidth("StreamInput8", 8, "171", 0xAB, false);
@@ -645,6 +870,7 @@ int main(int argc, char **argv) {
   testStreamOutput("StreamOutput32", 32, 0xDEADBEEF, "DEADBEEF", false);
   testStreamOutput("StreamOutputFloat", 32, 0x3FC00000ULL, "1.5", true);
   testSeriWrapComponent();
+  testSeriWrapPanes();
 
   std::printf("\n========== component tests: %d checks, %d FAIL ==========\n", g_checks, g_fails);
   return g_fails == 0 ? 0 : 1;

@@ -179,7 +179,7 @@
   ok   idle after loading a manifest (nothing armed)  [got 0x0 want 0x0]
   ok   SeriWrap: per-port input/output tables exist
   ok   SeriWrap: one input row per manifest input port  [got 0x2 want 0x2]
-  ok   SeriWrap: input rows are labelled a, b (manifest order)
+  ok   SeriWrap: input rows are labelled a, b (manifest order, width appended)
   ok   SeriWrap: every input row has its own value editor
   ok   SeriWrap: one output row per manifest output port  [got 0x2 want 0x2]
   ok   SeriWrap: output rows are labelled with the port names
@@ -193,4 +193,41 @@
   ok   processReadData(empty) is a no-op
   ok   reset() on a component without an active frame is safe
 
-========== component tests: 184 checks, 0 FAIL ==========
+== SeriWrap: three panes, port/word granularity, streaming entry ==
+  ok   SeriWrap: three panes (config | input | output)
+  ok   SeriWrap: the panes are the config / input / output boxes
+  ok   SeriWrap: the input pane has two editors
+  ok   SeriWrap: the config pane carries the view and granularity switches
+  ok   SeriWrap: the serial word stream is previewed
+  ok   SeriWrap: the streaming editor names the next slot
+  ok   wide manifest loads []
+  ok   word granularity: one slot per serial word
+  ok   port granularity: one slot per kernel port
+  ok   stream w0 takes 0x44 []
+  ok   stream w1 takes 0x33
+  ok   stream w2 takes 0x22
+  ok  This plugin does not support propagateSizeHints()
+ stream w3 takes 0x11
+  ok   four streamed words rebuild the 32-bit port (little endian)
+  ok   four committed words fill the frame
+  ok   the slot pointer wraps once the frame is full
+  ok   the word preview shows the 4 words in wire order
+  ok   a value wider than one word is refused
+  ok   a refused value leaves the frame unchanged
+  ok   the words put on the wire are exactly the previewed words
+  ok   commit a value for the undo test
+  ok   undo restores the previous port values
+  ok   clear zeroes the editor
+  ok   clear zeroes the preview
+  ok   switching editors keeps the entered values
+  ok   the view switch toggles to the streaming editor
+  ok   config pane keeps its width and height (224x341)
+  ok   input pane keeps its width and height (327x341)
+  ok   output pane keeps its width and height (313x341)
+  ok   the word preview shows the packed frame
+  ok   SeriWrap: the streaming editor has an auto-send box
+  ok   auto-send keeps quiet until the frame is full
+  ok   auto-send queues the frame once it is complete
+  ok   Send refuses a half-filled streaming frame
+
+========== component tests: 218 checks, 0 FAIL ==========

@@ -101,6 +101,12 @@ public:
   /// only the reconstructed port values.
   const std::vector<uint64_t> &receivedWords() const { return received_words_; }
 
+  /// Pack @p values (one per kernel input port) into the input frame exactly as
+  /// nextWriteWord() would send it, WITHOUT touching the state machine.  The GUI
+  /// uses it for the word-stream preview; the component tests use it to prove
+  /// the preview and the wire agree.
+  std::vector<uint64_t> previewInputWords(const std::vector<uint64_t> &values) const;
+
   /// True when the wrapper currently accepts a new word on s_ready.
   bool readySeen() const { return ready_seen_; }
   /// Diagnostics for the GUI.
@@ -108,6 +114,7 @@ public:
 
 private:
   uint64_t packInputWord(int word_index) const;
+  uint64_t packInputWordFrom(const std::vector<uint64_t> &values, int word_index) const;
   void scatterOutputWord(int word_index, uint64_t word);
   static bool bitAt(uint64_t v, int idx) { return idx >= 0 && ((v >> idx) & 1ULL); }
 

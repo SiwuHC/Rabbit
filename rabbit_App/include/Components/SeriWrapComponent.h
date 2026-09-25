@@ -4,29 +4,37 @@
 
 // ============================================================================
 // SeriWrapComponent -- one Rabbit component that speaks the whole SeriWrap
-// serial link (input frame + output frame), instead of gluing a StreamInput
-// and a StreamOutput together by hand.
+// serial link (input frame + output frame).
 //
-// It declares the wrapper's own logical ports
-//     DATA[0..W-1], CLK, STROBE          (host -> FPGA)
-//     DOUT[0..W-1], CLK_OUT, DATA_VALID, READY   (FPGA -> host)
-// and drives them through seriwrap::SeriWrapProtocol, which knows how many
-// words a frame is, how they are packed and whether the word boundary is an
-// edge (async) or a clock (sync).  The port bindings in the .rbtprj can be
-// generated automatically from the wrapper manifest + constraint file
-// (SeriWrap/tools/gen_rabbit_project.py), so the user does not have to pick
-// sixty-odd pins by hand.
+// The tile is split into three panes (see doc/SeriWrapComponentUI.md):
+//
+//   [ 配置 ]  mode / sent / done / READY+VALID / Hold Frames / view+granularity
+//             switches / Manifest... / Send frame / repeat
+//   [ 输入 ]  per-port rows  OR  StreamInput-style streaming entry (Enter sends
+//             one slot), plus the *serial* word-stream preview that both views
+//             share -- the link is serial, so the frame is shown as words too
+//   [ 输出 ]  one row per kernel output port, the raw words of the last frame,
+//             and the frame log
+//
+// The kernel is addressed by its *ports* (manifest "ports"), the link by its
+// *words* (manifest "packing"): the two are the same thing only when a port is
+// exactly one word wide, which the header of the input pane reports.
 // ============================================================================
 
+#include <QCheckBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
-#include <QQueue>
+#include <QPlainTextEdit>
 #include <QPushButton>
-#include <QCheckBox>
+#include <QQueue>
+#include <QSpinBox>
+#include <QStackedWidget>
 #include <QTableWidget>
+#include <QToolButton>
 
 #include <memory>
+#include <vector>
 
 #include "Components/AbstractComponent.h"
 #include "Components/ComponentMacro.h"
@@ -44,6 +52,12 @@ class SeriWrapRawComponent : public AbstractRawComponent {
   Q_OBJECT
 
 public:
+  /// What one Enter in the streaming editor fills: one serial word (8 bits for
+  /// the FDP3P7 link) or one whole kernel port (32 bits, spanning 4 words).
+  enum class Granularity { Word, Port };
+  /// Which editor the input pane shows.
+  enum class InputView { Ports, Streaming };
+
   SeriWrapRawComponent(QWidget *parent = nullptr);
   ~SeriWrapRawComponent() override;
 
@@ -60,6 +74,27 @@ public:
   /// by the component tests.  Returns false and fills @p error on failure.
   bool loadManifestFile(const QString &path, QString *error = nullptr);
 
+  // ---- automation / test API ----------------------------------------------
+  /// Kernel input port values currently in the editor (one per port).
+  std::vector<uint64_t> inputValues() const;
+  /// The frame as the wire will see it (no state machine involved).
+  std::vector<uint64_t> previewWords() const;
+  /// Streaming slots: input_words (word granularity) or n_in_ports (port).
+  int streamSlotCount() const;
+  int streamSlot() const;
+  QString streamSlotName() const;
+  bool streamFull() const;
+  int filledSlots() const;
+  Granularity granularity() const { return gran_; }
+  void setGranularity(Granularity g);
+  InputView inputView() const { return view_; }
+  void setInputView(InputView v);
+  /// Type one value into the streaming editor -- exactly what Enter does.
+  bool commitStreamValue(const QString &text, QString *error = nullptr);
+  void undoStreamValue();
+  int framesSent() const { return static_cast<int>(frames_sent_); }
+  int framesDone() const { return static_cast<int>(frames_done_); }
+
 protected:
   void paintEvent(QPaintEvent *event) override;
   void initPorts() override;
@@ -68,36 +103,68 @@ private slots:
   void onSendClicked();
   void onLoadManifestClicked();
   void onAutoRepeatToggled(bool on);
+  void onViewClicked();
+  void onGranularityClicked();
+  void onStreamReturn();
+  void onUndoClicked();
+  void onClearClicked();
+  void onHoldChanged(int value);
 
 private:
+  QWidget *buildConfigPane();
+  QWidget *buildInputPane();
+  QWidget *buildOutputPane();
+
   void rebuildFromBindings() const;
   void refreshLabels();
-  /// One editable row per kernel input port, one read-only row per kernel
-  /// output port.  Called after a manifest loads (that is where the port names
-  /// and counts come from).
   void rebuildPortTables();
-  /// Copy the comma separated "bulk" field into the per-port rows (one value
-  /// per port) and clear it.
-  void applyBulkValues();
-  /// Read the per-port rows into pending_inputs_ (one value per input port).
+  void refreshWordPreview();
+  void refreshStreamSlot();
+  void refreshModeButtons();
   void collectInputs();
+  void applyBulkValues();
+  void writeRowValue(int port, uint64_t value);
+  void markSlotsFilledForPorts(int count);
+  void markSlotsFilledForPortRow(int port);
+  uint64_t dataBitsOfFrameWord(uint64_t frameWord) const;
+  int portWordLo(int port) const;
+  int portWordHi(int port) const;
   /// const because getWriteData(), which reports what it puts on the wire, is
   /// itself const (the log widget is reached through a pointer member).
   void appendLog(const QString &line) const;
 
-  // widget bits
-  QLineEdit *value_edit_;          // bulk paste field ("v0, v1, ...")
-  QTableWidget *in_table_;         // per-port input rows (port | value)
-  QTableWidget *out_table_;        // per-port output rows (port | last frame)
-  std::vector<QLineEdit *> in_edits_;
-  std::vector<QTableWidgetItem *> out_values_;
+  // widgets
+  QLabel *status_label_;
+  QLabel *ready_dot_;
+  QLabel *valid_dot_;
+  QLabel *pin_label_;
+  QSpinBox *hold_spin_;
+  QToolButton *view_btn_;
+  QToolButton *gran_btn_;
+  QTableWidget *in_table_;
+  QTableWidget *out_table_;
+  QStackedWidget *input_stack_;
+  QLineEdit *stream_edit_;
+  QLabel *slot_label_;
+  QListWidget *hist_list_;
+  QCheckBox *autosend_box_;
+  QPlainTextEdit *word_preview_;
+  QLineEdit *value_edit_;          // bulk paste field ("bulk_edit")
   QPushButton *bulk_btn_;
   QPushButton *send_btn_;
   QPushButton *manifest_btn_;
+  QPushButton *undo_btn_;
+  QPushButton *clear_btn_;
   QCheckBox *auto_repeat_;
-  QLabel *status_label_;
   QLabel *out_label_;
+  QLabel *raw_label_;
   QListWidget *log_list_;
+  std::vector<QLineEdit *> in_edits_;
+  std::vector<QTableWidgetItem *> out_values_;
+  std::vector<std::vector<uint64_t>> stream_undo_;
+  std::vector<int> stream_undo_slot_;
+  std::vector<bool> stream_filled_;
+  bool updating_rows_ = false;
 
   // protocol state (getWriteData() is const, hence the mutable members)
   mutable seriwrap::LinkConfig cfg_;
@@ -114,8 +181,12 @@ private:
   mutable uint32_t frames_sent_ = 0;
   mutable uint32_t frames_done_ = 0;
   mutable std::vector<uint64_t> pending_inputs_;
-  mutable QString inp_names_;
-  mutable QString out_names_;
+
+  // editor state
+  Granularity gran_ = Granularity::Word;      // Enter sends one serial word
+  InputView view_ = InputView::Streaming;
+  int stream_slot_ = 0;
+  std::vector<int> in_port_widths_;
 
   // manifest-provided description (filled by the loader)
   int manifest_words_in_ = 0;
