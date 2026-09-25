@@ -219,24 +219,34 @@ static void test_async_receive() {
 }
 
 static void test_sync_mode() {
-  std::printf("sync mode (one frame per word, level-triggered receive)\n");
+  std::printf("sync mode (STROBE pulse per word, edge-triggered receive)\n");
   PinMap pins = makePins();
   SeriWrapProtocol proto(makeConfig(true), pins);
   proto.set_hold_frames(20);           // ignored in sync mode
   proto.startFrame({0xCAFEBABEULL, 0x0BADF00DULL});
   proto.processRead(rxFrame(pins, 0, false, false, true));
 
-  int frames = 0;
-  bool strobe_ok = true, clk_quiet = true;
-  for (int i = 0; i < 3; ++i) {
-    const uint64_t w = proto.nextWriteWord();
-    ++frames;
-    if (!bit(w, pins.strobe_in)) strobe_ok = false;
-    if (bit(w, pins.clk_in)) clk_quiet = false;
+  // One word costs two host frames: data with STROBE high, then the same data
+  // with STROBE low.  The generated sync SIPO writes on the STROBE *rising
+  // edge*, so the pulse -- not the number of clocks the host holds a frame for
+  // -- defines the word.  (A Rabbit GUI frame lasts several FPGA clocks.)
+  const int kWords = 3;                 // fixture: input_words == 3
+  uint64_t seen[2 * kWords];
+  bool clk_quiet = true, pattern_ok = true, pairs_ok = true;
+  for (int i = 0; i < 2 * kWords; ++i) {
+    seen[i] = proto.nextWriteWord();
+    const bool stb = bit(seen[i], pins.strobe_in);
+    if (stb != (i % 2 == 0)) pattern_ok = false;       // high, low, high, low...
+    if (bit(seen[i], pins.clk_in)) clk_quiet = false;
+    if (i % 2 == 1) {
+      const uint64_t a = seen[i - 1] & ~(1ULL << pins.strobe_in);
+      const uint64_t b = seen[i] & ~(1ULL << pins.strobe_in);
+      if (a != b) pairs_ok = false;                    // gap repeats the data
+    }
     proto.processRead(rxFrame(pins, 0, false, false, true));
   }
-  check(frames == 3, "sync mode sends exactly one host frame per input word");
-  check(strobe_ok, "the strobe is raised for that frame");
+  check(pattern_ok, "sync mode sends one STROBE pulse + one low gap per input word");
+  check(pairs_ok, "the gap frame repeats the word with STROBE low");
   check(clk_quiet, "s_clk_in is not toggled in sync mode");
   check(proto.state() == SeriWrapProtocol::State::Waiting, "input burst finished");
 

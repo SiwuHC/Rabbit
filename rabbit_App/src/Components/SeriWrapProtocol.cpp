@@ -93,15 +93,21 @@ uint64_t SeriWrapProtocol::nextWriteWord() {
     // Sync wrapper: it writes one word per SYSTEM clock while its strobe is
     // high, so the strobe must be raised for exactly one host frame.  (Whether
     // one host frame really is one system clock is what probe_clk measures.)
+    // Two host frames per word: data + STROBE high, then the same data with
+    // STROBE low.  The generated sync SIPO writes on the STROBE *rising edge*,
+    // so the pulse, not the number of clocks the host holds a frame for,
+    // defines a word.  (A Rabbit GUI frame lasts several FPGA clocks; with a
+    // level-sensitive SIPO every word would be stored that many times.)
     uint64_t word = packInputWord(word_index_);
-    word = withBit(word, pins_.strobe_in, true);
+    word = withBit(word, pins_.strobe_in, phase_ == 0);
     word = withBit(word, pins_.clk_in, false);
-    ++word_index_;
-    hold_cnt_ = 0;
-    phase_ = 0;
-    if (word_index_ >= cfg_.input_words) {
-      state_ = State::Waiting;
-      status_ = "input frame sent, collecting output";
+    if (++phase_ > 1) {
+      phase_ = 0;
+      ++word_index_;
+      if (word_index_ >= cfg_.input_words) {
+        state_ = State::Waiting;
+        status_ = "input frame sent, collecting output";
+      }
     }
     return word;
   }
