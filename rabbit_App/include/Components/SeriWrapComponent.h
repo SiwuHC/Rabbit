@@ -6,7 +6,7 @@
 // SeriWrapComponent -- one Rabbit component that speaks the whole SeriWrap
 // serial link (input frame + output frame).
 //
-// The tile is split into three panes (see doc/SeriWrapComponentUI.md):
+// The tile is split into three panes:
 //
 //   [ 配置 ]  mode / sent / done / READY+VALID / Hold Frames / view+granularity
 //             switches / Manifest... / Send frame

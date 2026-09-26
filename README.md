@@ -116,7 +116,7 @@ link), use the `SeriWrap` component: it drives the whole link (input frame +
 output frame) and takes the frame size, word width and packing from the
 `<top>__stream_manifest.json` that SeriWrap writes next to the wrapper.
 
-See [doc/SeriWrapComponent.md](./doc/SeriWrapComponent.md).  The project file can
+The project file can
 be generated and checked without any manual pin clicking:
 
 ```bash
