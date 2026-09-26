@@ -123,20 +123,30 @@ jobs:
       - name: Deploy Qt and package
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path pkg | Out-Null
-          Copy-Item build/windows/x64/release/rabbit_App.exe pkg/
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item build/windows/x64/release/rabbit_App.exe dist/
           if (Test-Path build/windows/x64/release/gtkwave) {
-            Copy-Item -Recurse build/windows/x64/release/gtkwave pkg/gtkwave
+            Copy-Item -Recurse build/windows/x64/release/gtkwave dist/gtkwave
           }
-          windeployqt --release --no-translations --no-system-d3d-compiler pkg/rabbit_App.exe
+          windeployqt --release --no-translations --no-system-d3d-compiler dist/rabbit_App.exe
           # libusb is linked dynamically by vlfd-ffi on Windows; ship the DLL vcpkg built.
-          Copy-Item "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin\libusb-1.0.dll" pkg/ -ErrorAction SilentlyContinue
-          Compress-Archive -Path pkg/* -DestinationPath rabbit-windows-x86_64.zip
+          Copy-Item "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin\libusb-1.0.dll" dist/ -ErrorAction SilentlyContinue
+          Compress-Archive -Path dist/* -DestinationPath rabbit-windows-x86_64.zip
+
+      - name: Build installer (Inno Setup)
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          $ver = $env:GITHUB_REF_NAME -replace '^v', ''
+          if (-not $ver) { $ver = '1.2.0' }
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' /DAppVersion=$ver installer\rabbit.iss
 
       - uses: actions/upload-artifact@v4
         with:
           name: rabbit-windows-x86_64
-          path: rabbit-windows-x86_64.zip
+          path: |
+            rabbit-windows-x86_64.zip
+            installer_out/*.exe
           if-no-files-found: error
 
   release:
