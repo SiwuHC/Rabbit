@@ -705,23 +705,21 @@ bound subset of `DATA`/`DOUT` is used.
 
 **Description**  : 
 
-Drives a whole SeriWrap wrapper — input frame and output frame — from one tile
-split into three panes: **config** (mode, `sent`/`done`, protocol state,
-READY/DATA_VALID indicators, settings), **input** (the two editors and, below them,
-a preview of the serial words that go on the wire) and **output** (one row per
-kernel output port, the raw words of the last frame, and the `RX frame N:` log).
-Values are typed per kernel *port* and packed into serial *words* by the
-component, so a 32-bit port on an 8-bit link simply becomes four words.
+Talks to a SeriWrap-generated wrapper directly: it binds the wrapper's own ports
+(`DATA`/`CLK`/`STROBE` towards the FPGA, `DOUT`/`CLK_OUT`/`DATA_VALID`/`READY`
+back) and takes the link description from the `<top>__stream_manifest.json` of
+that wrapper, so the frame size, word width, packing and sync/async mode do not
+have to be configured by hand.
 
-A project with every pin already bound can be generated:
+The tile is split into three panes: **config** (mode, `sent`/`done`, protocol
+state, READY/DATA_VALID indicators, settings), **input** (the two editors and,
+below them, a preview of the serial words that go on the wire) and **output**
+(one row per kernel output port, the raw words of the last frame, and the
+`RX frame N:` log).  Values are typed per kernel *port* and packed into serial
+*words* by the component, so a 32-bit port on an 8-bit link simply becomes four
+words.
 
-```bash
-python3 SeriWrap/tools/gen_rabbit_project.py \
-    --manifest <top>__stream_manifest.json --cons <top>_cons.xml \
-    --out <top>.rbtprj --name <top> --bit <top>_yosys_bit.bit
-python3 SeriWrap/tools/check_rabbit_project.py \
-    --project <top>.rbtprj --cons <top>_cons.xml
-```
-
-Note the 64-bit host frame limit: 8-bit (11 pins) and 16-bit (37 pins) links fit,
-a 32-bit link would need 69 pins.
+Generate and synthesise the wrapper with the SeriWrap flow as usual
+(`ip_main.py stream` for the RTL and manifest, then the FPGA flow for the
+bitstream); the component only needs those ports bound in the project and that
+manifest loaded.
