@@ -905,6 +905,10 @@ uint64_t SeriWrapRawComponent::getWriteData() const {
                          st == seriwrap::SeriWrapProtocol::State::Done;
   if (can_start) {
     if (frame_armed_ || auto_repeat_on_) {
+      // Take the values from the editor as they are *now*: with repeat ticked
+      // the frame keeps being re-sent, and it should follow the table/stream
+      // instead of replaying whatever was typed before the last Send.
+      pending_inputs_ = inputValues();
       proto_->startFrame(pending_inputs_);
       frame_armed_ = false;
       frame_reported_ = false;
