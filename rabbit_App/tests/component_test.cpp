@@ -21,6 +21,7 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPalette>
 #include <QPlainTextEdit>
 #include <QSplitter>
 #include <QStackedWidget>
@@ -931,6 +932,20 @@ static int snapshotComponent(const QString &name, const QString &out, int w, int
 
 int main(int argc, char **argv) {
   QApplication app(argc, argv);
+    // SNAP_DARK=1 renders the same widget with a dark palette, so the theme
+    // adaptation of the components can be checked against the light rendering.
+    if (qEnvironmentVariableIsSet("SNAP_DARK")) {
+      QPalette dark;
+      dark.setColor(QPalette::Window, QColor(53, 53, 53));
+      dark.setColor(QPalette::WindowText, Qt::white);
+      dark.setColor(QPalette::Base, QColor(42, 42, 42));
+      dark.setColor(QPalette::AlternateBase, QColor(66, 66, 66));
+      dark.setColor(QPalette::Text, Qt::white);
+      dark.setColor(QPalette::Button, QColor(53, 53, 53));
+      dark.setColor(QPalette::ButtonText, Qt::white);
+      dark.setColor(QPalette::Mid, QColor(130, 130, 130));
+      QApplication::setPalette(dark);
+    }
   if (argc >= 4 && QString(argv[1]) == "--snapshot-component") {
     return snapshotComponent(QString(argv[2]), QString(argv[3]),
                              argc >= 5 ? QString(argv[4]).toInt() : 320,

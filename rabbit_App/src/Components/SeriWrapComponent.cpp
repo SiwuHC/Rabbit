@@ -16,6 +16,7 @@
 #include <QJsonObject>
 #include <QMessageBox>
 #include <QPainter>
+#include <QPalette>
 #include <QSplitter>
 #include <QVBoxLayout>
 
@@ -142,7 +143,7 @@ QWidget *SeriWrapRawComponent::buildConfigPane() {
   pin_label_ = new QLabel("引脚: -", box);
   pin_label_->setObjectName("pin_label");
   pin_label_->setWordWrap(true);
-  pin_label_->setStyleSheet("font-size:10px; color:#444;");
+  pin_label_->setStyleSheet("font-size:10px;");
   v->addWidget(pin_label_);
 
   manifest_btn_ = new QPushButton("Manifest...", box);
@@ -156,7 +157,7 @@ QWidget *SeriWrapRawComponent::buildConfigPane() {
   auto *hint = new QLabel(
       "引脚绑定用标题栏的齿轮按钮打开设置。整帧没填满时 Send 不会发帧。", box);
   hint->setWordWrap(true);
-  hint->setStyleSheet("font-size:10px; color:#666;");
+  hint->setStyleSheet("font-size:10px;");
   v->addWidget(hint);
   v->addStretch(1);
 
@@ -237,7 +238,7 @@ QWidget *SeriWrapRawComponent::buildInputPane() {
   v->addLayout(bulk_row);
 
   auto *word_hint = new QLabel("字流预览（线上串行顺序，每行 16 字）", box);
-  word_hint->setStyleSheet("font-size:10px; color:#666;");
+  word_hint->setStyleSheet("font-size:10px;");
   v->addWidget(word_hint);
   word_preview_ = new QPlainTextEdit(box);
   word_preview_->setObjectName("word_preview");
@@ -273,7 +274,7 @@ QWidget *SeriWrapRawComponent::buildOutputPane() {
   out_label_ = new QLabel("out: -", box);
   out_label_->setObjectName("out_label");
   out_label_->setWordWrap(true);
-  out_label_->setStyleSheet("font-size:10px; color:#666;");
+  out_label_->setStyleSheet("font-size:10px;");
   v->addWidget(out_label_);
 
   raw_label_ = new QLabel("原始字: -", box);
@@ -970,14 +971,14 @@ void SeriWrapRawComponent::refreshLabels() {
                              .arg(QString::fromStdString(proto_->statusText())));
   if (ready_dot_) {
     ready_dot_->setText(QString("READY  %1").arg(proto_->readySeen() ? "●" : "○"));
-    ready_dot_->setStyleSheet(proto_->readySeen() ? "font-size:11px; color:#0a0;"
-                                                  : "font-size:11px; color:#888;");
+    ready_dot_->setStyleSheet(proto_->readySeen() ? "font-size:11px;"
+                                                  : "font-size:11px;");
   }
   if (valid_dot_) {
     const bool valid = proto_->outputWordsReceived() > 0;
     valid_dot_->setText(QString("VALID  %1").arg(valid ? "●" : "○"));
-    valid_dot_->setStyleSheet(valid ? "font-size:11px; color:#08f;"
-                                    : "font-size:11px; color:#888;");
+    valid_dot_->setStyleSheet(valid ? "font-size:11px;"
+                                    : "font-size:11px;");
   }
 
   QString out = "out: ";
@@ -1009,9 +1010,12 @@ void SeriWrapRawComponent::appendLog(const QString &line) const {
 }
 
 void SeriWrapRawComponent::paintEvent(QPaintEvent *) {
+  // palette-derived, so the tile follows the light/dark theme like the
+  // Stream / DecimalInput / DataCapture components.
+  const QPalette palette;
   QPainter p(this);
-  p.setPen(Qt::black);
-  p.setBrush(Qt::white);
+  p.setPen(palette.color(QPalette::WindowText));
+  p.setBrush(palette.color(QPalette::Base));
   p.drawRect(rect());
 }
 

@@ -102,13 +102,14 @@ void AbstractComponent::paintEvent(QPaintEvent *event) {
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
 
-  QPalette palette;
-  QColor color = palette.color(QPalette::Window);
-  color.setAlpha(200);
-  painter.setBrush(color);
-
-  painter.setPen(Qt::NoPen);
-  painter.drawRoundedRect(0, 0, this->width(), this->height(), 5, 5);
+  // Base instead of Window: in both the light and the dark palette Base differs
+  // from the panel background, so a tile stays visible either way.  The outline
+  // keeps the edge readable when the two colours are close.
+  const QPalette palette;
+  QColor fill = palette.color(QPalette::Base);
+  painter.setBrush(fill);
+  painter.setPen(QPen(palette.color(QPalette::Mid), 1));
+  painter.drawRoundedRect(0, 0, this->width() - 1, this->height() - 1, 5, 5);
 }
 
 void AbstractComponent::contextMenuEvent(QContextMenuEvent *event) {

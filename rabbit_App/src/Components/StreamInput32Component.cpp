@@ -59,7 +59,14 @@ uint64_t StreamInput32RawComponent::getWriteData() const {
   data|=(static_cast<uint64_t>(stb)<<p[kDataWidth+1].pin_index);
   last_output_=data; return data;
 }
-void StreamInput32RawComponent::paintEvent(QPaintEvent*) { QPainter pn(this); pn.setPen(Qt::black); pn.setBrush(Qt::white); pn.drawRect(rect()); }
+void StreamInput32RawComponent::paintEvent(QPaintEvent *) {
+  // palette-derived: the panel follows the light/dark theme
+  const QPalette palette;
+  QPainter pn(this);
+  pn.setPen(palette.color(QPalette::WindowText));
+  pn.setBrush(palette.color(QPalette::Base));
+  pn.drawRect(rect());
+}
 void StreamInput32RawComponent::initPorts() {
   for (int i=0;i<kDataWidth;i++) appendPort(input_ports_,QString("DATA[%1]").arg(i),ports::PortType::Input);
   appendPort(input_ports_,"CLK",ports::PortType::Input);

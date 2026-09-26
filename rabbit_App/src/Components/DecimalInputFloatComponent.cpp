@@ -69,8 +69,10 @@ void DecimalInputFloatRawComponent::paintEvent(QPaintEvent *event) {
   painter.setRenderHint(QPainter::Antialiasing);
 
   // Draw border
-  painter.setPen(Qt::black);
-  painter.setBrush(Qt::white);
+  // palette-derived so the panel adapts to dark/light themes
+  const QPalette palette;
+  painter.setPen(palette.color(QPalette::WindowText));
+  painter.setBrush(palette.color(QPalette::Base));
   painter.drawRect(rect());
 }
 

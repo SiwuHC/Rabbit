@@ -43,7 +43,14 @@ void StreamOutputFloatRawComponent::processReadData(QQueue<uint64_t> &rq) {
   }
 }
 uint64_t StreamOutputFloatRawComponent::getWriteData() const { return 0; }
-void StreamOutputFloatRawComponent::paintEvent(QPaintEvent*) { QPainter pn(this); pn.setPen(Qt::black); pn.setBrush(Qt::white); pn.drawRect(rect()); }
+void StreamOutputFloatRawComponent::paintEvent(QPaintEvent *) {
+  // palette-derived: the panel follows the light/dark theme
+  const QPalette palette;
+  QPainter pn(this);
+  pn.setPen(palette.color(QPalette::WindowText));
+  pn.setBrush(palette.color(QPalette::Base));
+  pn.drawRect(rect());
+}
 void StreamOutputFloatRawComponent::initPorts() {
   for (int i=0;i<kDataWidth;i++) appendPort(output_ports_,QString("DATA[%1]").arg(i),ports::PortType::Output);
   appendPort(output_ports_,"CLK",ports::PortType::Output);
