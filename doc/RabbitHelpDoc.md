@@ -26,6 +26,7 @@
       - [6.4.4 SegmentDisplay](#644-segmentdisplay)
       - [6.4.5 FourDigitSegmentDisplay](#645-fourdigitsegmentdisplay)
       - [6.4.6 LEDMatrix](#646-ledmatrix)
+    - [6.5 SeriWrap](#65-seriwrap)
 
 ## 1. Introduction
 
@@ -476,4 +477,83 @@ LEDMatrix can display 4x4/8x8/16x16 LEDs. Use ROW[0:x] and COL[0:x] to set the L
 
 **Vision Persistance** setting is also available for LEDMatrix.
 
+### 6.5 SeriWrap
 
+**SeriWrap** wraps a synthesised kernel behind a serial link, so a host that can
+only change its pins once per USB frame can still feed the kernel a whole input
+frame and read a whole output frame.  One `SeriWrap` component drives the whole
+link for you: input frame (`DATA`, `CLK`, `STROBE`) and output frame (`DOUT`,
+`CLK_OUT`, `DATA_VALID`, `READY`).  Frame size, word width and packing come from
+the `<top>__stream_manifest.json` that SeriWrap writes next to the generated
+wrapper, so nothing has to be typed in twice.
+
+#### Generating the wrapper and the project
+
+```bash
+# 1. wrap the kernel (8-bit words, the FDP3P7's own BRAM primitive)
+python3 SeriWrap/ip_main.py stream --source kernel.v --top kernel \
+    --bram-width 8 --bram-depth 512 --bram-type ram4s --binpack --sync-mode \
+    --out-dir out_dir
+
+# 2. the FPGA flow: yosys -> map -> pack -> place -> route -> bitgen
+bash ufde_test/run_ufde_flow.sh out_dir kernel
+
+# 3. write the Rabbit project with every pin already bound
+python3 SeriWrap/tools/gen_rabbit_project.py \
+    --manifest out_dir/kernel__stream_manifest.json \
+    --cons     out_dir/kernel_cons.xml \
+    --out      out_dir/kernel.rbtprj --name kernel --bit kernel_yosys_bit.bit
+
+# 4. check the bindings against the constraint file
+python3 SeriWrap/tools/check_rabbit_project.py --project out_dir/kernel.rbtprj \
+    --cons out_dir/kernel_cons.xml
+```
+
+#### The component
+
+The tile is three panes side by side:
+
+| pane | contents |
+|---|---|
+| Config (left) | mode (`sync`/`async`), `sent`/`done` counters, protocol state, READY and DATA_VALID indicators, **Hold Frames**, **输入视图** (streaming / port table), **流式粒度** (word / port), **Manifest...**, **Send frame** |
+| Input (middle) | the two editors, and below them the **word-stream preview**: the frame as the serial words that go on the wire, 16 per line |
+| Output (right) | one row per kernel output port, the raw words of the last frame, and the frame log (`RX frame N: ...`) |
+
+* **Streaming** (the default): type one value and press Enter, exactly like the
+  StreamInput components.  With granularity **word** one Enter is one serial word;
+  with **port** it is a whole kernel port (split over its words automatically).
+  The line above the box names the next slot
+  (`下一个: w28 = a7[23:16]   18/64 已填`).  `回退` undoes the last value, `清空`
+  zeroes the editor, and `填满自动发送` queues the frame as soon as the last slot
+  is filled.
+* **Port table**: one row per kernel port (`port [width] | value | words`) for
+  typing a whole frame at once.  Editing a row refreshes the preview and the
+  "filled" bookkeeping.
+* **Bulk paste**: the field above the preview takes `v0, v1, ...`; **Fill rows**
+  distributes it over the ports.
+* A value wider than its slot is refused (the field turns red) instead of being
+  truncated, and a half-filled *streaming* frame is refused by **Send frame**
+  (the log then says how many slots are still missing).
+
+#### Running a frame
+
+1. **Download** the bitstream, then press **Run**;
+2. press **Manifest...** and pick `<top>__stream_manifest.json`;
+3. fill the input values (table or streaming) and press **Send frame**;
+4. the status line counts `sent=` and `done=`; every finished frame adds one
+   `RX frame N: ...` line to the log and refreshes the output pane.
+
+A frame must be complete before it is sent: the kernel only starts once all of
+its input words have arrived.
+
+#### Ports, words and pins
+
+A kernel *port* (say a 32-bit `a0`) is not the same thing as a serial *word*:
+with an 8-bit link `a0` spans four words, so a 64-word frame carries 16 such
+ports.  When every kernel port is exactly one word wide (8-bit ports on an 8-bit
+link) the packing is one-to-one and the two granularities become the same thing --
+the slot line says so in that case.
+
+The link width is limited by the 64-bit host frame: an 8-bit link (11 pins incl.
+`rst_n`) and a 16-bit link (37 pins) fit, while a 32-bit link would need 69 pins
+and does not.
