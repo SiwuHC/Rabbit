@@ -1,0 +1,147 @@
+name: Release binaries
+
+# Rabbit is a Qt 6 + Rust (vlfd-ffi) + xmake application, so each platform builds on
+# its own runner.  Tags v* build both and attach them to the release; a manual run
+# only produces the artifacts.
+#
+# install-qt-action exports QT_ROOT_DIR, so every step here uses that variable and
+# the workflow needs no expression syntax beyond the runner names.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System dependencies
+        run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev libudev-dev
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.5.5'
+          arch: linux_gcc_64
+          cache: true
+
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+
+      - name: Configure
+        run: xmake f -y -m release --qt="$QT_ROOT_DIR"
+
+      - name: Build
+        run: xmake build -j2 rabbit_App
+
+      - name: Package
+        run: |
+          set -e
+          mkdir -p pkg/lib pkg/plugins/platforms
+          cp build/linux/x86_64/release/rabbit_App pkg/
+          if [ -d build/linux/x86_64/release/gtkwave ]; then cp -r build/linux/x86_64/release/gtkwave pkg/; fi
+
+          # Ship the Qt runtime the binary links against (and the xcb platform
+          # plugin it loads at startup), so the tarball does not need a Qt install.
+          cp -L "$QT_ROOT_DIR"/lib/libQt6*.so.6 pkg/lib/ 2>/dev/null || true
+          cp -L "$QT_ROOT_DIR"/lib/libicu*.so.* pkg/lib/ 2>/dev/null || true
+          cp -r "$QT_ROOT_DIR"/plugins/platforms/. pkg/plugins/platforms/ 2>/dev/null || true
+          cp -r "$QT_ROOT_DIR"/plugins/imageformats pkg/plugins/ 2>/dev/null || true
+
+          cat > pkg/run-rabbit.sh <<'SH'
+          #!/bin/sh
+          here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+          LD_LIBRARY_PATH="$here/lib:$LD_LIBRARY_PATH"
+          QT_PLUGIN_PATH="$here/plugins"
+          export LD_LIBRARY_PATH QT_PLUGIN_PATH
+          exec "$here/rabbit_App" "$@"
+          SH
+          chmod +x pkg/run-rabbit.sh
+
+          cat > pkg/README-run.txt <<'TXT'
+          Start the tool with ./run-rabbit.sh -- it points Qt at the libraries inside
+          this archive.  Still needed from the system: libusb-1.0, libudev, X11 or
+          Wayland, and USB access to the board.
+          TXT
+
+          tar -czf rabbit-linux-x86_64.tar.gz -C pkg .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rabbit-linux-x86_64
+          path: rabbit-linux-x86_64.tar.gz
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.5.5'
+          arch: win64_msvc2022_64
+          cache: true
+
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+
+      - name: libusb for vlfd-ffi
+        shell: pwsh
+        run: |
+          vcpkg install libusb:x64-windows
+          "LIBUSB_ROOT=$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
+      - name: Configure
+        shell: pwsh
+        run: xmake f -y -m release --qt="$env:QT_ROOT_DIR"
+
+      - name: Build
+        shell: pwsh
+        run: xmake build -j2 rabbit_App
+
+      - name: Deploy Qt and package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path pkg | Out-Null
+          Copy-Item build/windows/x64/release/rabbit_App.exe pkg/
+          windeployqt --release --no-translations --no-system-d3d-compiler pkg/rabbit_App.exe
+          Compress-Archive -Path pkg/* -DestinationPath rabbit-windows-x86_64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rabbit-windows-x86_64
+          path: rabbit-windows-x86_64.zip
+          if-no-files-found: error
+
+  release:
+    needs: [linux, windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - run: ls -l artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
