@@ -358,3 +358,6 @@ compile_commands.json
 *.bit
 
 .DS_Store
+
+# build output of the fallback test runner
+rabbit_App/tests/.component_build/

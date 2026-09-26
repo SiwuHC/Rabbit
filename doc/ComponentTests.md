@@ -8,10 +8,10 @@ cd BRAM_Test/Rabbit
 xmake build -j1 component_test            # -j1 on purpose: a parallel full-app build
 QT_QPA_PLATFORM=offscreen ./build/linux/x86_64/release/component_test
 # fallback without xmake:
-QT_DIR=/home/camel/tools/qt/Qt/6.5.3/gcc_64 bash rabbit_App/tests/run_component_test.sh
+QT_DIR=<qt-install>/6.5.3/gcc_64 bash rabbit_App/tests/run_component_test.sh
 ```
 
-Last run: **175 checks, 0 FAIL** (`rabbit_App/tests/component_test_output.txt`, the
+Last run: **222 checks, 0 FAIL** (`rabbit_App/tests/component_test_output.txt`, the
 full per-check output; a fresh run also writes `component_test.log`, which their
 `.gitignore` excludes).
 
