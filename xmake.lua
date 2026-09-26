@@ -39,13 +39,21 @@ target("rabbit_App")
     
     add_deps("TabToolbar")
       
-    add_linkgroups("vlfd_ffi", {static = true})
-    add_linkdirs("vlfd-ffi/target/release")
-    
+    -- vlfd-ffi is a Rust static library.  add_linkgroups() is a GNU-ld feature
+    -- (Linux/MinGW); on MSVC the library must be named explicitly, otherwise
+    -- every vlfd_* symbol comes back unresolved.
     if is_plat("windows") then
-        add_syslinks("userenv", "ntdll", "kernel32", "advapi32")
+        add_links("vlfd_ffi")
+        add_linkdirs("vlfd-ffi/target/release")
+        add_syslinks("userenv", "ntdll", "kernel32", "advapi32",
+                     "setupapi", "cfgmgr32", "user32", "ole32")
     elseif is_plat("linux") then
+        add_linkgroups("vlfd_ffi", {static = true})
+        add_linkdirs("vlfd-ffi/target/release")
         add_syslinks("udev")
+    else
+        add_linkgroups("vlfd_ffi", {static = true})
+        add_linkdirs("vlfd-ffi/target/release")
     end
 
     before_build(function (target)
@@ -100,8 +108,18 @@ target("component_test")
     add_includedirs("rabbit_App/include")
     add_includedirs("vlfd-ffi")
     add_deps("TabToolbar")
-    add_linkgroups("vlfd_ffi", {static = true})
-    add_linkdirs("vlfd-ffi/target/release")
-    if is_plat("linux") then
+    -- vlfd-ffi is a Rust static library.  add_linkgroups() is a GNU-ld feature
+    -- (Linux/MinGW); on MSVC the library must be named explicitly, otherwise
+    -- every vlfd_* symbol comes back unresolved.
+    if is_plat("windows") then
+        add_links("vlfd_ffi")
+        add_linkdirs("vlfd-ffi/target/release")
+        add_syslinks("setupapi", "cfgmgr32", "user32")
+    elseif is_plat("linux") then
+        add_linkgroups("vlfd_ffi", {static = true})
+        add_linkdirs("vlfd-ffi/target/release")
         add_syslinks("udev")
+    else
+        add_linkgroups("vlfd_ffi", {static = true})
+        add_linkdirs("vlfd-ffi/target/release")
     end
