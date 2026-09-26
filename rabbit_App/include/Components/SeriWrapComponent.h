@@ -9,7 +9,7 @@
 // The tile is split into three panes (see doc/SeriWrapComponentUI.md):
 //
 //   [ 配置 ]  mode / sent / done / READY+VALID / Hold Frames / view+granularity
-//             switches / Manifest... / Send frame / repeat
+//             switches / Manifest... / Send frame
 //   [ 输入 ]  per-port rows  OR  StreamInput-style streaming entry (Enter sends
 //             one slot), plus the *serial* word-stream preview that both views
 //             share -- the link is serial, so the frame is shown as words too
@@ -102,7 +102,6 @@ protected:
 private slots:
   void onSendClicked();
   void onLoadManifestClicked();
-  void onAutoRepeatToggled(bool on);
   void onViewClicked();
   void onGranularityClicked();
   void onStreamReturn();
@@ -155,7 +154,6 @@ private:
   QPushButton *manifest_btn_;
   QPushButton *undo_btn_;
   QPushButton *clear_btn_;
-  QCheckBox *auto_repeat_;
   QLabel *out_label_;
   QLabel *raw_label_;
   QListWidget *log_list_;
@@ -171,7 +169,6 @@ private:
   mutable seriwrap::PinMap pins_;
   mutable std::unique_ptr<seriwrap::SeriWrapProtocol> proto_;
   mutable bool frame_armed_ = false;
-  mutable bool auto_repeat_on_ = false;
   /// A finished frame is reported once.  outputWordsReceived() stays at its
   /// final value until the next frame starts, so without this the log would
   /// print the same frame on every host access (which looks like an endless

@@ -153,10 +153,6 @@ QWidget *SeriWrapRawComponent::buildConfigPane() {
   send_btn_->setObjectName("send_btn");
   v->addWidget(send_btn_);
 
-  auto_repeat_ = new QCheckBox("repeat", box);
-  auto_repeat_->setObjectName("repeat_box");
-  v->addWidget(auto_repeat_);
-
   auto *hint = new QLabel(
       "引脚绑定用标题栏的齿轮按钮打开设置。整帧没填满时 Send 不会发帧。", box);
   hint->setWordWrap(true);
@@ -171,7 +167,6 @@ QWidget *SeriWrapRawComponent::buildConfigPane() {
   connect(manifest_btn_, &QPushButton::clicked, this,
           &SeriWrapRawComponent::onLoadManifestClicked);
   connect(send_btn_, &QPushButton::clicked, this, &SeriWrapRawComponent::onSendClicked);
-  connect(auto_repeat_, &QCheckBox::toggled, this, &SeriWrapRawComponent::onAutoRepeatToggled);
   return box;
 }
 
@@ -846,8 +841,6 @@ void SeriWrapRawComponent::onLoadManifestClicked() {
   }
 }
 
-void SeriWrapRawComponent::onAutoRepeatToggled(bool on) { auto_repeat_on_ = on; }
-
 void SeriWrapRawComponent::onViewClicked() {
   setInputView(view_ == InputView::Streaming ? InputView::Ports : InputView::Streaming);
 }
@@ -904,10 +897,9 @@ uint64_t SeriWrapRawComponent::getWriteData() const {
   const bool can_start = st == seriwrap::SeriWrapProtocol::State::Idle ||
                          st == seriwrap::SeriWrapProtocol::State::Done;
   if (can_start) {
-    if (frame_armed_ || auto_repeat_on_) {
-      // Take the values from the editor as they are *now*: with repeat ticked
-      // the frame keeps being re-sent, and it should follow the table/stream
-      // instead of replaying whatever was typed before the last Send.
+    if (frame_armed_) {
+      // Take the values from the editor as they are *now*, so Send always sends
+      // what the tables/stream show.
       pending_inputs_ = inputValues();
       proto_->startFrame(pending_inputs_);
       frame_armed_ = false;
