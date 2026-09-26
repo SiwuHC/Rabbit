@@ -897,14 +897,20 @@ void SeriWrapRawComponent::onHoldChanged(int value) { setNumberSetting("hold_fra
 // ---------------------------------------------------------------------------
 uint64_t SeriWrapRawComponent::getWriteData() const {
   if (!proto_) return 0;
-  if (!proto_->busy()) {
+  // A finished frame stays in State::Done until the next one starts, so "may I
+  // start a frame" is Idle *or* Done -- checking busy() only would refuse every
+  // frame after the first one (Send frame worked once, then went silent).
+  const auto st = proto_->state();
+  const bool can_start = st == seriwrap::SeriWrapProtocol::State::Idle ||
+                         st == seriwrap::SeriWrapProtocol::State::Done;
+  if (can_start) {
     if (frame_armed_ || auto_repeat_on_) {
       proto_->startFrame(pending_inputs_);
       frame_armed_ = false;
       frame_reported_ = false;
       ++frames_sent_;
     } else {
-      return 0;
+      return 0;   // quiet line
     }
   }
   return proto_->nextWriteWord();

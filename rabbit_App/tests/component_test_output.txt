@@ -221,6 +221,10 @@
   ok   clear zeroes the preview
   ok   switching editors keeps the entered values
   ok   the view switch toggles to the streaming editor
+  ok   first Send frame goes out [SeriWrap [sync] sent=1 done=1  frame complete]
+  ok   a second Send frame goes out after the first [SeriWrap [sync] sent=2 done=2  frame complete sent=2 done=2]
+  ok   both frames put the same words on the wire
+  ok   the repeated frame carries the committed words again
   ok   config pane keeps its width and height (224x341)
   ok   input pane keeps its width and height (327x341)
   ok   output pane keeps its width and height (313x341)
@@ -230,4 +234,4 @@
   ok   auto-send queues the frame once it is complete
   ok   Send refuses a half-filled streaming frame
 
-========== component tests: 218 checks, 0 FAIL ==========
+========== component tests: 222 checks, 0 FAIL ==========

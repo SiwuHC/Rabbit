@@ -765,6 +765,61 @@ static void testSeriWrapPanes() {
           "the view switch toggles to the streaming editor");
   }
 
+  // Two frames in a row: a finished frame sits in State::Done until the next
+  // one starts, so the "may I start a frame" gate must accept Done as well --
+  // otherwise the first Send works and every later one goes silent.
+  {
+    Box b3 = make("SeriWrap");
+    if (b3.raw) {
+      bindPins(b3.raw);
+      auto *sw3 = dynamic_cast<SeriWrapRawComponent *>(b3.raw);
+      if (sw3 && sw3->loadManifestFile(wide, nullptr)) {
+        const auto &op3 = b3.raw->outputPorts();
+        const auto &ip3 = b3.raw->inputPorts();
+        sw3->setGranularity(SeriWrapRawComponent::Granularity::Word);
+        for (const char *v : {"0x44", "0x33", "0x22", "0x11"}) {
+          sw3->commitStreamValue(QString(v));
+        }
+        auto run_frame = [&](uint8_t first_byte) -> std::vector<uint64_t> {
+          feedRead(b3.raw, {1ULL << (op3[34].pin_index - 1)});   // s_ready
+          QMetaObject::invokeMethod(b3.raw, "onSendClicked");
+          std::vector<uint64_t> words;
+          for (int i = 0; i < 4; ++i) {                          // the 4 words of the frame
+            const uint64_t w = b3.raw->getWriteData();
+            (void)b3.raw->getWriteData();                        // strobe-low gap
+            words.push_back(inValue(ip3, 8, w));
+          }
+          // let the wrapper return its output frame, so the state machine lands
+          // in Done exactly like it does on the board
+          // outFrame() expects the full 32-pin bank width: p[32] is CLK_OUT and
+          // p[33] DATA_VALID, so w must be kSeriWrapMaxWidth, not the link width.
+          for (int i = 0; i < 4; ++i) {
+            feedRead(b3.raw, {outFrame(op3, rabbit_App::component::kSeriWrapMaxWidth, first_byte, 0, 1)});
+          }
+          return words;
+        };
+        auto status_text = [&] {
+          auto *l = b3.raw->findChild<QLabel *>("status_label");
+          return l ? l->text() : QString();
+        };
+        const auto f1 = run_frame(0x5A);
+        check(sw3->framesSent() == 1,
+              QString("first Send frame goes out [%1]").arg(status_text()));
+        const auto f2 = run_frame(0x5A);
+        check(sw3->framesSent() == 2,
+              QString("a second Send frame goes out after the first [%1 sent=%2 done=%3]")
+                  .arg(status_text())
+                  .arg(sw3->framesSent())
+                  .arg(sw3->framesDone()));
+        bool same = !f1.empty() && f1.size() == f2.size();
+        for (size_t i = 0; same && i < f1.size(); ++i) same = (f1[i] == f2[i]);
+        check(same, "both frames put the same words on the wire");
+        check(f2.size() == 4 && f2[0] == 0x44 && f2[1] == 0x33 && f2[2] == 0x22 && f2[3] == 0x11,
+              "the repeated frame carries the committed words again");
+      }
+    }
+  }
+
   // layout sanity: at the configured tile size (18x8 grid = 900x400) all three
   // panes must get real estate, and the word preview must show the frame
   b.wrap->resize(900, 400);
