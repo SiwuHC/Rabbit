@@ -19,6 +19,10 @@
       - [6.3.4 Small Keypad](#634-small-keypad)
       - [6.3.5 Rotary Button](#635-rotary-button)
       - [6.3.6 PS2Keyboard](#636-ps2keyboard)
+      - [6.3.7 DecimalInput8](#637-decimalinput8)
+      - [6.3.8 DecimalInput16](#638-decimalinput16)
+      - [6.3.9 DecimalInput32](#639-decimalinput32)
+      - [6.3.10 DecimalInputFloat](#6310-decimalinputfloat)
     - [6.4 Output](#64-output)
       - [6.4.1 LED](#641-led)
       - [6.4.2 TextLCD](#642-textlcd)
@@ -26,7 +30,20 @@
       - [6.4.4 SegmentDisplay](#644-segmentdisplay)
       - [6.4.5 FourDigitSegmentDisplay](#645-fourdigitsegmentdisplay)
       - [6.4.6 LEDMatrix](#646-ledmatrix)
-    - [6.5 SeriWrap](#65-seriwrap)
+      - [6.4.7 DataCapture8](#647-datacapture8)
+      - [6.4.8 DataCapture16](#648-datacapture16)
+      - [6.4.9 DataCapture32](#649-datacapture32)
+      - [6.4.10 DataCaptureFloat](#6410-datacapturefloat)
+    - [6.5 Stream components](#65-stream-components)
+      - [6.5.1 StreamInput8](#651-streaminput8)
+      - [6.5.2 StreamInput16](#652-streaminput16)
+      - [6.5.3 StreamInput32](#653-streaminput32)
+      - [6.5.4 StreamInputFloat](#654-streaminputfloat)
+      - [6.5.5 StreamOutput8](#655-streamoutput8)
+      - [6.5.6 StreamOutput16](#656-streamoutput16)
+      - [6.5.7 StreamOutput32](#657-streamoutput32)
+      - [6.5.8 StreamOutputFloat](#658-streamoutputfloat)
+    - [6.6 SeriWrap](#66-seriwrap)
 
 ## 1. Introduction
 
@@ -262,6 +279,44 @@ Each bit is read on the falling edge of the clock so keep it synchronized correc
 The PS/2 protocol need a high working frequency (recommendedly 10000Hz) to get a good effect.And before using, you need to click the item which is already placed to get a input focus and it will turn green when focused. For the driver and decooder of hardware side, you can refer to the [demo](https://github.com/Starryskyz/PS2KeyboardHardwareDemo)
 
 
+#### 6.3.7 DecimalInput8
+
+<p align="center">
+    <img alt="DecimalInput8" height=100 src="./images/Component-DecimalInput8.png" />
+</p>
+
+**Bit Width** : 8
+
+**Port List** : 
+
+| Port Name |  Description  |
+| :-------: | :-----------: |
+| `DIN0` … `DIN7` | value bits, `DIN0` is the LSB |
+
+**Description**  : 
+
+Type a decimal value in the panel; the bits appear on `DIN0`-`DIN7`.
+
+
+
+#### 6.3.8 DecimalInput16
+
+Same as 6.3.7 with **Bit Width** 16 (`DIN0` … `DIN15`).
+
+
+
+#### 6.3.9 DecimalInput32
+
+Same as 6.3.7 with **Bit Width** 32 (`DIN0` … `DIN31`).
+
+
+
+#### 6.3.10 DecimalInputFloat
+
+Same as 6.3.7 with **Bit Width** 32, but the value is entered as a decimal
+fraction (for example `1.5`) and the panel drives its IEEE-754 single-precision
+pattern on `DIN0`-`DIN31`.
+
 ### 6.4 Output
 
 #### 6.4.1 LED
@@ -477,83 +532,196 @@ LEDMatrix can display 4x4/8x8/16x16 LEDs. Use ROW[0:x] and COL[0:x] to set the L
 
 **Vision Persistance** setting is also available for LEDMatrix.
 
-### 6.5 SeriWrap
+#### 6.4.7 DataCapture8
 
-**SeriWrap** wraps a synthesised kernel behind a serial link, so a host that can
-only change its pins once per USB frame can still feed the kernel a whole input
-frame and read a whole output frame.  One `SeriWrap` component drives the whole
-link for you: input frame (`DATA`, `CLK`, `STROBE`) and output frame (`DOUT`,
-`CLK_OUT`, `DATA_VALID`, `READY`).  Frame size, word width and packing come from
-the `<top>__stream_manifest.json` that SeriWrap writes next to the generated
-wrapper, so nothing has to be typed in twice.
+<p align="center">
+    <img alt="DataCapture8" height=100 src="./images/Component-DataCapture8.png" />
+</p>
 
-#### Generating the wrapper and the project
+**Bit Width** : 8 (+ 1 capture signal)
+
+**Port List** : 
+
+| Port Name |  Description  |
+| :-------: | :-----------: |
+| `CAPTURE` | capture strobe, driven by the design |
+| `DOUT0` … `DOUT7` | value bits, `DOUT0` is the LSB |
+
+**Description**  : 
+
+Latches `DOUT0`-`DOUT7` every clock the design holds `CAPTURE` high and shows the
+last captured value in decimal and hex.
+
+
+
+#### 6.4.8 DataCapture16
+
+Same as 6.4.7 with **Bit Width** 16 (`DOUT0` … `DOUT15`).
+
+
+
+#### 6.4.9 DataCapture32
+
+Same as 6.4.7 with **Bit Width** 32 (`DOUT0` … `DOUT31`).
+
+
+
+#### 6.4.10 DataCaptureFloat
+
+Same as 6.4.7 with **Bit Width** 32; the captured bits are shown as an IEEE-754
+single-precision number.
+
+### 6.5 Stream components
+
+The Stream components move one *value* per handshake over a few pins instead of
+one bit per pin, so a value of any width costs the same three pins.
+
+
+#### 6.5.1 StreamInput8
+
+<p align="center">
+    <img alt="StreamInput8" height=100 src="./images/Component-StreamInput8.png" />
+</p>
+
+**Bit Width** : 8
+
+**Port List** : 
+
+| Port Name |  Description  |
+| :-------: | :-----------: |
+| `DATA[0]` … `DATA[7]` | value bits, `DATA[0]` is the LSB |
+| `CLK` | data clock, pulsed once per value |
+| `STROBE` | strobe, high together with `CLK` |
+
+**Settings** : 
+
+* **Target Count** : how many values to send (0 = keep going).
+* **CLK Hold** : how many host frames each phase of the pulse is held for, so a
+  slow design has time to see it.
+
+**Description**  : 
+
+Type a value and press Enter; the component puts it on `DATA` and pulses
+`CLK`/`STROBE` (the value is held for a few frames before the pulse, so the bits
+settle first).
+
+
+
+#### 6.5.2 StreamInput16
+
+Same as 6.5.1 with **Bit Width** 16 (`DATA[0]` … `DATA[15]`).
+
+
+
+#### 6.5.3 StreamInput32
+
+Same as 6.5.1 with **Bit Width** 32 (`DATA[0]` … `DATA[31]`).
+
+
+
+#### 6.5.4 StreamInputFloat
+
+Same as 6.5.3, but the value is entered as a decimal fraction and converted to
+IEEE-754 single precision.
+
+
+
+#### 6.5.5 StreamOutput8
+
+<p align="center">
+    <img alt="StreamOutput8" height=100 src="./images/Component-StreamOutput8.png" />
+</p>
+
+**Bit Width** : 8
+
+**Port List** : 
+
+| Port Name |  Description  |
+| :-------: | :-----------: |
+| `DATA[0]` … `DATA[7]` | value bits, `DATA[0]` is the LSB |
+| `CLK` | value clock, driven by the design |
+| `DATA_VALID` | high while `DATA` carries a value |
+
+**Settings** : **Grid Rows** / **Grid Cols** — how many captured values the panel
+shows.
+
+**Description**  : 
+
+Shows what the design sends: every rising edge of `CLK` with `DATA_VALID` high is
+one value, and the panel lists (or plots) them in a grid.
+
+
+
+#### 6.5.6 StreamOutput16
+
+Same as 6.5.5 with **Bit Width** 16 (`DATA[0]` … `DATA[15]`).
+
+
+
+#### 6.5.7 StreamOutput32
+
+Same as 6.5.5 with **Bit Width** 32 (`DATA[0]` … `DATA[31]`).
+
+
+
+#### 6.5.8 StreamOutputFloat
+
+Same as 6.5.7, but the captured bits are shown as an IEEE-754 single-precision
+number.
+
+### 6.6 SeriWrap
+
+<p align="center">
+    <img alt="SeriWrap" height=200 src="./images/Component-SeriWrap.png" />
+</p>
+
+**Bit Width** : the link word width from the manifest (8, 16 or 32); only the
+bound subset of `DATA`/`DOUT` is used.
+
+**Port List** : 
+
+| Port Name |  Description  |
+| :-------: | :-----------: |
+| `DATA[0]` … `DATA[W-1]` | input frame word (host → FPGA) |
+| `CLK` | input frame strobe clock |
+| `STROBE` | input frame word valid |
+| `DOUT[0]` … `DOUT[W-1]` | output frame word (FPGA → host) |
+| `CLK_OUT` | output frame clock (async wrappers) |
+| `DATA_VALID` | output frame word valid |
+| `READY` | wrapper ready; the next word may only start while it is high |
+
+**Settings** : 
+
+* **Hold Frames** : host frames each phase is held for in async mode.
+* **Manifest...** : pick the `<top>__stream_manifest.json` written next to the
+  generated wrapper — frame size, word width, packing and sync/async all come
+  from it.
+* **输入视图** : **流式** (one value per Enter, like StreamInput) or **端口表**
+  (one row per kernel input port).
+* **流式粒度** : **字** (one Enter = one serial word) or **端口** (one Enter = one
+  kernel port, split over its words).
+* **Send frame** : queues one complete frame (a half-filled streaming frame is
+  refused, and the log says how many slots are missing).
+
+**Description**  : 
+
+Drives a whole SeriWrap wrapper — input frame and output frame — from one tile
+split into three panes: **config** (mode, `sent`/`done`, protocol state,
+READY/DATA_VALID indicators, settings), **input** (the two editors and, below them,
+a preview of the serial words that go on the wire) and **output** (one row per
+kernel output port, the raw words of the last frame, and the `RX frame N:` log).
+Values are typed per kernel *port* and packed into serial *words* by the
+component, so a 32-bit port on an 8-bit link simply becomes four words.
+
+A project with every pin already bound can be generated:
 
 ```bash
-# 1. wrap the kernel (8-bit words, the FDP3P7's own BRAM primitive)
-python3 SeriWrap/ip_main.py stream --source kernel.v --top kernel \
-    --bram-width 8 --bram-depth 512 --bram-type ram4s --binpack --sync-mode \
-    --out-dir out_dir
-
-# 2. the FPGA flow: yosys -> map -> pack -> place -> route -> bitgen
-bash ufde_test/run_ufde_flow.sh out_dir kernel
-
-# 3. write the Rabbit project with every pin already bound
 python3 SeriWrap/tools/gen_rabbit_project.py \
-    --manifest out_dir/kernel__stream_manifest.json \
-    --cons     out_dir/kernel_cons.xml \
-    --out      out_dir/kernel.rbtprj --name kernel --bit kernel_yosys_bit.bit
-
-# 4. check the bindings against the constraint file
-python3 SeriWrap/tools/check_rabbit_project.py --project out_dir/kernel.rbtprj \
-    --cons out_dir/kernel_cons.xml
+    --manifest <top>__stream_manifest.json --cons <top>_cons.xml \
+    --out <top>.rbtprj --name <top> --bit <top>_yosys_bit.bit
+python3 SeriWrap/tools/check_rabbit_project.py \
+    --project <top>.rbtprj --cons <top>_cons.xml
 ```
 
-#### The component
-
-The tile is three panes side by side:
-
-| pane | contents |
-|---|---|
-| Config (left) | mode (`sync`/`async`), `sent`/`done` counters, protocol state, READY and DATA_VALID indicators, **Hold Frames**, **输入视图** (streaming / port table), **流式粒度** (word / port), **Manifest...**, **Send frame** |
-| Input (middle) | the two editors, and below them the **word-stream preview**: the frame as the serial words that go on the wire, 16 per line |
-| Output (right) | one row per kernel output port, the raw words of the last frame, and the frame log (`RX frame N: ...`) |
-
-* **Streaming** (the default): type one value and press Enter, exactly like the
-  StreamInput components.  With granularity **word** one Enter is one serial word;
-  with **port** it is a whole kernel port (split over its words automatically).
-  The line above the box names the next slot
-  (`下一个: w28 = a7[23:16]   18/64 已填`).  `回退` undoes the last value, `清空`
-  zeroes the editor, and `填满自动发送` queues the frame as soon as the last slot
-  is filled.
-* **Port table**: one row per kernel port (`port [width] | value | words`) for
-  typing a whole frame at once.  Editing a row refreshes the preview and the
-  "filled" bookkeeping.
-* **Bulk paste**: the field above the preview takes `v0, v1, ...`; **Fill rows**
-  distributes it over the ports.
-* A value wider than its slot is refused (the field turns red) instead of being
-  truncated, and a half-filled *streaming* frame is refused by **Send frame**
-  (the log then says how many slots are still missing).
-
-#### Running a frame
-
-1. **Download** the bitstream, then press **Run**;
-2. press **Manifest...** and pick `<top>__stream_manifest.json`;
-3. fill the input values (table or streaming) and press **Send frame**;
-4. the status line counts `sent=` and `done=`; every finished frame adds one
-   `RX frame N: ...` line to the log and refreshes the output pane.
-
-A frame must be complete before it is sent: the kernel only starts once all of
-its input words have arrived.
-
-#### Ports, words and pins
-
-A kernel *port* (say a 32-bit `a0`) is not the same thing as a serial *word*:
-with an 8-bit link `a0` spans four words, so a 64-word frame carries 16 such
-ports.  When every kernel port is exactly one word wide (8-bit ports on an 8-bit
-link) the packing is one-to-one and the two granularities become the same thing --
-the slot line says so in that case.
-
-The link width is limited by the 64-bit host frame: an 8-bit link (11 pins incl.
-`rst_n`) and a 16-bit link (37 pins) fit, while a 32-bit link would need 69 pins
-and does not.
+Note the 64-bit host frame limit: 8-bit (11 pins) and 16-bit (37 pins) links fit,
+a 32-bit link would need 69 pins.

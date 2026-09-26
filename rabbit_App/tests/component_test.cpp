@@ -905,8 +905,37 @@ static int snapshot(const QString &out_path, const QString &manifest, bool strea
   return ok ? 0 : 1;
 }
 
+// Snapshot of any component at a given size: the help document shows one image
+// per component, and these are generated, not hand-made.
+static int snapshotComponent(const QString &name, const QString &out, int w, int h) {
+  Box b = make(name);
+  if (!b.wrap || !b.raw) {
+    std::printf("no such component: %s\n", qPrintable(name));
+    return 1;
+  }
+  b.wrap->resize(w, h);
+  b.wrap->show();
+  QApplication::processEvents();
+  bindPins(b.raw);
+  // give a value component something to show
+  if (auto *edit = b.raw->findChild<QLineEdit *>()) {
+    edit->setText(b.raw->inputPorts().size() > 16 ? "1.5" : "171");
+    QMetaObject::invokeMethod(b.raw, "onEnterPressed");
+  }
+  QApplication::processEvents();
+  const bool ok = b.wrap->grab().save(out);
+  std::printf("snapshot %s -> %s\n", ok ? "saved" : "FAILED", qPrintable(out));
+  delete b.wrap;
+  return ok ? 0 : 1;
+}
+
 int main(int argc, char **argv) {
   QApplication app(argc, argv);
+  if (argc >= 4 && QString(argv[1]) == "--snapshot-component") {
+    return snapshotComponent(QString(argv[2]), QString(argv[3]),
+                             argc >= 5 ? QString(argv[4]).toInt() : 320,
+                             argc >= 6 ? QString(argv[5]).toInt() : 220);
+  }
   if (argc >= 3 && QString(argv[1]) == "--snapshot") {
     const QString view = argc >= 5 ? QString(argv[4]) : QString("stream");
     return snapshot(QString(argv[2]), argc >= 4 ? QString(argv[3]) : QString(),
