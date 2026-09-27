@@ -232,37 +232,50 @@ void ComponentSettingsDialog::accept() {
   auto raw_component = component_->rawComponent();
   auto &inputs_vec = raw_component->inputPorts();
   auto &outputs_vec = raw_component->outputPorts();
+  // The table lists every input port and then every output port, so a row index
+  // is NOT an index into a direction's port vector: keep one counter per
+  // direction.  (Indexing outputs_vec[row] walked past the end for components
+  // with many ports, e.g. SeriWrap with 34 inputs + 35 outputs, and crashed on
+  // OK.)  The cell widgets are also checked, since a malformed row would
+  // otherwise be dereferenced blindly.
+  int in_index = 0, out_index = 0;
   for (int i = 0; i < model_->rowCount(); i++) {
-    auto component_pname = model_->item(i, 0)->text();
-    auto port_type = model_->item(i, 1)->text();
-    auto pin_name =
-        qobject_cast<QLabel *>(table_view_->indexWidget(model_->index(i, 2)))
-            ->text();
-    auto hdl_pname =
-        qobject_cast<QComboBox *>(table_view_->indexWidget(model_->index(i, 3)))
-            ->currentText();
-    if (hdl_pname != original_ports_names_[i]) {
+    auto *name_item = model_->item(i, 0);
+    auto *type_item = model_->item(i, 1);
+    auto *pin_label =
+        qobject_cast<QLabel *>(table_view_->indexWidget(model_->index(i, 2)));
+    auto *hdl_combo =
+        qobject_cast<QComboBox *>(table_view_->indexWidget(model_->index(i, 3)));
+    if (!name_item || !type_item || !pin_label || !hdl_combo) continue;
+
+    const auto component_pname = name_item->text();
+    const auto port_type = type_item->text();
+    const auto pin_name = pin_label->text();
+    const auto hdl_pname = hdl_combo->currentText();
+    if (i < original_ports_names_.size() && hdl_pname != original_ports_names_[i]) {
       is_modifieds_ = true;
     }
-    bool is_none = (hdl_pname == tr("None"));
+    const bool is_none = (hdl_pname == tr("None"));
     switch (ports::stringToPortType(port_type)) {
     case ports::PortType::Input: {
-      auto &port = inputs_vec[i];
+      if (in_index >= inputs_vec.size()) { ++in_index; break; }
+      auto &port = inputs_vec[in_index++];
       port.pin_name = is_none ? "" : pin_name;
       port.pin_index = ports::inputDeclIndexMap(pin_name);
       break;
     }
     case ports::PortType::Output: {
-      auto &port_2 = outputs_vec[i];
+      if (out_index >= outputs_vec.size()) { ++out_index; break; }
+      auto &port_2 = outputs_vec[out_index++];
       port_2.pin_name = is_none ? "" : pin_name;
       port_2.pin_index = ports::outputDeclIndexMap(pin_name);
       break;
     }
     default:
-      throw(std::runtime_error(
-          "ComponentSettingsDialog::accept: port type error"));
+      break;
     }
   }
+
   if (component_->componentName() != component_name_edit_->text()) {
     component_->setComponentName(component_name_edit_->text());
     is_modifieds_ = true;
